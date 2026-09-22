@@ -593,6 +593,8 @@ task RunNTAlignment {
 
     runtime {
         docker: docker_image_id
+        cpu: 32
+        memory: "256 GiB"
     }
 }
 
@@ -644,6 +646,8 @@ task RunNRAlignment {
 
     runtime {
         docker: docker_image_id
+        cpu: 32
+        memory: "256 GiB"
     }
 }
 
