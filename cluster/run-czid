@@ -1,0 +1,139 @@
+#!/usr/bin/env python3
+
+# ---------------------------------------------------------------------------------------------
+# Runs the CZ ID short-read-mngs and long-read-mngs WDL pipelines via miniwdl on the HPC using
+# the Slurm + Singularity backend. Takes as input a samplesheet CSV file.
+#
+# Usage:
+#   run-czid samplesheet.csv \
+#       --fastq-dir /path/to/fastqs \
+#       --output-dir /path/to/output \
+#       [--serial]
+# ---------------------------------------------------------------------------------------------
+
+import sys
+import os
+import argparse
+import subprocess
+import pandas as pd
+
+CZID_WORKFLOWS_DIR = "/data/openomics/prod/czid-workflows"
+SHORT_READ_WORKFLOW_DIR = os.path.join(CZID_WORKFLOWS_DIR, "workflows/short-read-mngs")
+LONG_READ_WORKFLOW_DIR = os.path.join(CZID_WORKFLOWS_DIR, "workflows/long-read-mngs")
+MINIWDL_CFG = os.path.join(CZID_WORKFLOWS_DIR, "cluster/miniwdl.cfg")
+DEFAULT_REFERENCE_VERSION = "2024-02-06"
+
+SBATCH_HEADER = """#!/usr/bin/env bash
+#SBATCH --job-name={job_name}
+#SBATCH --output={out_dir}/%x_%j.out
+#SBATCH --error={out_dir}/%x_%j.err
+#SBATCH --partition=all
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=16G
+#SBATCH --time=48:00:00
+
+set -euo pipefail
+
+module load miniwdl
+
+"""
+
+
+def load_samplesheet(path):
+    return pd.read_csv(path, dtype=str)
+
+
+def build_command(row, output_dir, fastq_dir):
+    sample_name = row["sample_name"]
+    platform = row["seq_platform"].strip().upper()
+    nucleotide_type = row["seq_input"].strip().upper()
+    r1 = os.path.join(fastq_dir, row["seq_fastq_R1"])
+    r2_val = row.get("seq_fastq_R2")
+    r2 = os.path.join(fastq_dir, r2_val) if isinstance(r2_val, str) and r2_val.strip() else None
+
+    ref_version_val = row.get("reference_version")
+    ref_version = ref_version_val.strip() if isinstance(ref_version_val, str) and ref_version_val.strip() else DEFAULT_REFERENCE_VERSION
+
+    out_dir = os.path.join(output_dir, sample_name)
+
+    if platform == "ILLUMINA":
+        job_name = f"czid_short_read_mngs_{sample_name}"
+        cfg = os.path.join(CZID_WORKFLOWS_DIR, f"cluster/skyline_short-read-mngs_config_{ref_version}.yml")
+        cmd = [
+            "miniwdl", "run",
+            os.path.join(SHORT_READ_WORKFLOW_DIR, "local_driver.wdl"),
+            "docker_image_id=czid-short-read-mngs",
+            f"fastqs_0={r1}",
+        ]
+        if r2:
+            cmd.append(f"fastqs_1={r2}")
+        cmd += [
+            f"host_filter.nucleotide_type={nucleotide_type}",
+            "-i", cfg,
+            "--cfg", MINIWDL_CFG,
+            "-d", out_dir,
+            "--verbose",
+        ]
+    elif platform == "ONT":
+        job_name = f"czid_long_read_mngs_{sample_name}"
+        cfg = os.path.join(CZID_WORKFLOWS_DIR, f"cluster/skyline_long-read-mngs_config_{ref_version}.yml")
+        cmd = [
+            "miniwdl", "run",
+            os.path.join(LONG_READ_WORKFLOW_DIR, "run.wdl"),
+            "docker_image_id=czid-long-read-mngs",
+            f"input_fastq={r1}",
+            f"library_type={nucleotide_type}",
+            "-i", cfg,
+            "--cfg", MINIWDL_CFG,
+            "-d", out_dir,
+            "--verbose",
+        ]
+    else:
+        return None, None
+
+    return job_name, cmd
+
+
+def submit_sample(row, output_dir, fastq_dir, serial, prev_job_id):
+    sample_name = row["sample_name"]
+    job_name, cmd = build_command(row, output_dir, fastq_dir)
+    if cmd is None:
+        print(f"Skipping {sample_name}: unknown seq_platform '{row['seq_platform']}'", file=sys.stderr)
+        return prev_job_id
+
+    out_dir = os.path.join(output_dir, sample_name)
+    os.makedirs(out_dir, exist_ok=True)
+    sbatch_path = os.path.join(out_dir, "submit.sbatch")
+
+    script = SBATCH_HEADER.format(job_name=job_name, out_dir=out_dir)
+    script += " \\\n    ".join(cmd) + "\n"
+
+    with open(sbatch_path, "w") as f:
+        f.write(script)
+
+    sbatch_cmd = ["sbatch"]
+    if serial and prev_job_id:
+        sbatch_cmd.append(f"--dependency=afterok:{prev_job_id}")
+    sbatch_cmd.append(sbatch_path)
+
+    print(f"Submitting sample {sample_name} ({job_name})" + (f" (after job {prev_job_id})" if serial and prev_job_id else ""))
+    result = subprocess.run(sbatch_cmd, check=True, capture_output=True, text=True)
+    return result.stdout.strip().split()[-1]
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("samplesheet")
+    parser.add_argument("--fastq-dir", required=True)
+    parser.add_argument("--output-dir", required=True)
+    parser.add_argument("--serial", action="store_true", help="Chain samples via Slurm job dependencies, one at a time (default: submit all in parallel)")
+    args = parser.parse_args()
+
+    df = load_samplesheet(args.samplesheet)
+    prev_job_id = None
+    for _, row in df.iterrows():
+        prev_job_id = submit_sample(row, args.output_dir, args.fastq_dir, args.serial, prev_job_id)
+
+
+if __name__ == "__main__":
+    main()
