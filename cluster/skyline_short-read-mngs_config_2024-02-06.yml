@@ -2,11 +2,11 @@
 # Contains reference file paths on skyline HPC for short-read-mngs workflow. Using references derived from 2024-02-06 index generation.
 host_filter.file_ext: fastq
 host_filter.host_genome: human
-host_filter.bowtie2_index_tar: /data/openomics/references/czid-workflows/host_filter/human/20221031/bowtie2_index_tar/human.bowtie2.tar
-host_filter.hisat2_index_tar: /data/openomics/references/czid-workflows/host_filter/human/20221031/hisat2_index_tar/human.hisat2.tar
-host_filter.kallisto_idx: /data/openomics/references/czid-workflows/host_filter/human/20221031/kallisto_idx/human.kallisto.idx
-host_filter.human_bowtie2_index_tar: /data/openomics/references/czid-workflows/host_filter/human/20221031/bowtie2_index_tar/human.bowtie2.tar
-host_filter.human_hisat2_index_tar: /data/openomics/references/czid-workflows/host_filter/human/20221031/hisat2_index_tar/human.hisat2.tar
+host_filter.bowtie2_index_tar: /data/openomics/references/czid-workflows/host_filter/human_telomere/2023-07-05/host-genome-generation-1/human_telomere.bowtie2.tar
+host_filter.hisat2_index_tar: /data/openomics/references/czid-workflows/host_filter/human_telomere/2023-07-05/host-genome-generation-1/human_telomere.hisat2.tar
+host_filter.kallisto_idx: /data/openomics/references/czid-workflows/host_filter/human_telomere/2023-07-05/host-genome-generation-1/human_telomere.kallisto.idx
+host_filter.human_bowtie2_index_tar: /data/openomics/references/czid-workflows/host_filter/human_telomere/2023-07-05/host-genome-generation-1/human_telomere.bowtie2.tar
+host_filter.human_hisat2_index_tar: /data/openomics/references/czid-workflows/host_filter/human_telomere/2023-07-05/host-genome-generation-1/human_telomere.hisat2.tar
 host_filter.adapter_fasta: /data/openomics/references/czid-workflows/adapter_sequences/clipDb.fasta
 host_filter.max_input_fragments: 150000000
 host_filter.max_subsample_fragments: 2000000
