@@ -22,6 +22,14 @@ SHORT_READ_WORKFLOW_DIR = os.path.join(CZID_WORKFLOWS_DIR, "workflows/short-read
 LONG_READ_WORKFLOW_DIR = os.path.join(CZID_WORKFLOWS_DIR, "workflows/long-read-mngs")
 MINIWDL_CFG = os.path.join(CZID_WORKFLOWS_DIR, "cluster/miniwdl.cfg")
 DEFAULT_REFERENCE_VERSION = "2024-02-06"
+DEFAULT_HOST_GENOME = "human"
+HOST_REFERENCE_ROOT = "/data/openomics/references/czid-workflows/host_filter"
+HOST_REFERENCE_DIRS = {
+    "human": "human_telomere/2023-07-05/host-genome-generation-1",
+    "mosquito": "mosquito/20221031",
+    "bat": "bat/20221031",
+    "macaca_fascicularis": "macaca_fascicularis/2023-06-08/host-genome-generation-1",
+}
 
 SBATCH_HEADER = """#!/usr/bin/env bash
 #SBATCH --job-name={job_name}
@@ -30,7 +38,7 @@ SBATCH_HEADER = """#!/usr/bin/env bash
 #SBATCH --partition=all
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=16G
-#SBATCH --time=48:00:00
+#SBATCH --time=7-00:00:00
 
 set -euo pipefail
 
@@ -54,9 +62,19 @@ def build_command(row, output_dir, fastq_dir):
     ref_version_val = row.get("reference_version")
     ref_version = ref_version_val.strip() if isinstance(ref_version_val, str) and ref_version_val.strip() else DEFAULT_REFERENCE_VERSION
 
+    host_genome_val = row.get("host_genome")
+    host_genome = host_genome_val.strip() if isinstance(host_genome_val, str) and host_genome_val.strip() else DEFAULT_HOST_GENOME
+
     out_dir = os.path.join(output_dir, sample_name)
 
     if platform == "ILLUMINA":
+        if host_genome not in HOST_REFERENCE_DIRS:
+            raise ValueError(
+                f"Sample {sample_name}: unsupported host_genome '{host_genome}'"
+                f"Expected one of: {', '.join(HOST_REFERENCE_DIRS)}"
+            )
+        host_reference_dir = os.path.join(HOST_REFERENCE_ROOT, HOST_REFERENCE_DIRS[host_genome])
+        host_reference_name = "human_telomere" if host_genome == "human" else host_genome
         job_name = f"czid_short_read_mngs_{sample_name}"
         cfg = os.path.join(CZID_WORKFLOWS_DIR, f"cluster/skyline_short-read-mngs_config_{ref_version}.yml")
         cmd = [
@@ -67,8 +85,17 @@ def build_command(row, output_dir, fastq_dir):
         ]
         if r2:
             cmd.append(f"fastqs_1={r2}")
+        for input_name, suffix in (
+            ("bowtie2_index_tar", "bowtie2.tar"),
+            ("hisat2_index_tar", "hisat2.tar"),
+            ("kallisto_idx", "kallisto.idx"),
+        ):
+            reference_dir = os.path.join(host_reference_dir, input_name) if host_genome in ("mosquito", "bat") else host_reference_dir
+            reference_path = os.path.join(reference_dir, f"{host_reference_name}.{suffix}")
+            cmd.append(f"host_filter.{input_name}={reference_path}")
         cmd += [
             f"host_filter.nucleotide_type={nucleotide_type}",
+            f"host_filter.host_genome={host_genome}",
             "-i", cfg,
             "--cfg", MINIWDL_CFG,
             "-d", out_dir,
