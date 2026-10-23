@@ -14,9 +14,10 @@
 import sys
 import os
 import argparse
+import csv
 import subprocess
-import pandas as pd
 
+# Predefined configurations
 CZID_WORKFLOWS_DIR = "/data/openomics/prod/czid-workflows"
 SHORT_READ_WORKFLOW_DIR = os.path.join(CZID_WORKFLOWS_DIR, "workflows/short-read-mngs")
 LONG_READ_WORKFLOW_DIR = os.path.join(CZID_WORKFLOWS_DIR, "workflows/long-read-mngs")
@@ -24,11 +25,19 @@ MINIWDL_CFG = os.path.join(CZID_WORKFLOWS_DIR, "cluster/miniwdl.cfg")
 DEFAULT_REFERENCE_VERSION = "2024-02-06"
 DEFAULT_HOST_GENOME = "human"
 HOST_REFERENCE_ROOT = "/data/openomics/references/czid-workflows/host_filter"
-HOST_REFERENCE_DIRS = {
-    "human": "human_telomere/2023-07-05/host-genome-generation-1",
-    "mosquito": "mosquito/20221031",
-    "bat": "bat/20221031",
-    "macaca_fascicularis": "macaca_fascicularis/2023-06-08/host-genome-generation-1",
+HOST_REFERENCE_TEMPLATES = {
+    "short_read": {
+        "human": "human_telomere/2023-07-05/host-genome-generation-1/human_telomere.{suffix}",
+        "mosquito": "mosquito/20221031/{input_name}/mosquito.{suffix}",
+        "bat": "bat/20221031/{input_name}/bat.{suffix}",
+        "macaca_fascicularis": "macaca_fascicularis/2023-06-08/host-genome-generation-1/macaca_fascicularis.{suffix}",
+    },
+    "long_read": {
+        "human": "human_telomere/2023-07-05/host-genome-generation-1/human_telomere_{library_type}.mmi",
+        "mosquito": "mosquitos/2019-10-02/mosquitos_minimap2_genome_{library_type}.mmi",
+        "bat": "bat/2019-07-02/bat_minimap2_genome_{library_type}.mmi",
+        "macaca_fascicularis": "macaca_fascicularis/2023-06-08/host-genome-generation-1/macaca_fascicularis_{library_type}.mmi",
+    },
 }
 
 SBATCH_HEADER = """#!/usr/bin/env bash
@@ -48,7 +57,43 @@ module load miniwdl
 
 
 def load_samplesheet(path):
-    return pd.read_csv(path, dtype=str)
+    with open(path, newline="", encoding="utf-8-sig") as samplesheet:
+        yield from csv.DictReader(samplesheet)
+
+
+def optional_value(row, column, default=None):
+    value = row.get(column)
+    if isinstance(value, str):
+        return value.strip() or default
+    return default
+
+
+def build_host_reference_inputs(read_type, host_genome, nucleotide_type, sample_name):
+    templates = HOST_REFERENCE_TEMPLATES[read_type]
+    if host_genome not in templates:
+        raise ValueError(
+            f"Sample {sample_name}: unsupported host_genome '{host_genome}'. Expected one of: {', '.join(templates)}"
+        )
+
+    if read_type == "short_read":
+        references = {
+            f"host_filter.{input_name}": templates[host_genome].format(input_name=input_name, suffix=suffix)
+            for input_name, suffix in (
+                ("bowtie2_index_tar", "bowtie2.tar"),
+                ("hisat2_index_tar", "hisat2.tar"),
+                ("kallisto_idx", "kallisto.idx"),
+            )
+        }
+    else:
+        references = {
+            input_name: templates[host].format(library_type=nucleotide_type.lower())
+            for input_name, host in (
+                ("minimap_host_db", host_genome),
+                ("minimap_human_db", "human"),
+            )
+        }
+
+    return [f"{input_name}={os.path.join(HOST_REFERENCE_ROOT, path)}" for input_name, path in references.items()]
 
 
 def build_command(row, output_dir, fastq_dir):
@@ -56,68 +101,48 @@ def build_command(row, output_dir, fastq_dir):
     platform = row["seq_platform"].strip().upper()
     nucleotide_type = row["seq_input"].strip().upper()
     r1 = os.path.join(fastq_dir, row["seq_fastq_R1"])
-    r2_val = row.get("seq_fastq_R2")
-    r2 = os.path.join(fastq_dir, r2_val) if isinstance(r2_val, str) and r2_val.strip() else None
-
-    ref_version_val = row.get("reference_version")
-    ref_version = ref_version_val.strip() if isinstance(ref_version_val, str) and ref_version_val.strip() else DEFAULT_REFERENCE_VERSION
-
-    host_genome_val = row.get("host_genome")
-    host_genome = host_genome_val.strip() if isinstance(host_genome_val, str) and host_genome_val.strip() else DEFAULT_HOST_GENOME
+    r2_name = optional_value(row, "seq_fastq_R2")
+    r2 = os.path.join(fastq_dir, r2_name) if r2_name else None
+    ref_version = optional_value(row, "reference_version", DEFAULT_REFERENCE_VERSION)
+    host_genome = optional_value(row, "host_genome", DEFAULT_HOST_GENOME)
 
     out_dir = os.path.join(output_dir, sample_name)
 
-    if platform == "ILLUMINA":
-        if host_genome not in HOST_REFERENCE_DIRS:
-            raise ValueError(
-                f"Sample {sample_name}: unsupported host_genome '{host_genome}'"
-                f"Expected one of: {', '.join(HOST_REFERENCE_DIRS)}"
-            )
-        host_reference_dir = os.path.join(HOST_REFERENCE_ROOT, HOST_REFERENCE_DIRS[host_genome])
-        host_reference_name = "human_telomere" if host_genome == "human" else host_genome
-        job_name = f"czid_short_read_mngs_{sample_name}"
-        cfg = os.path.join(CZID_WORKFLOWS_DIR, f"cluster/skyline_short-read-mngs_config_{ref_version}.yml")
-        cmd = [
-            "miniwdl", "run",
-            os.path.join(SHORT_READ_WORKFLOW_DIR, "local_driver.wdl"),
-            "docker_image_id=czid-short-read-mngs",
-            f"fastqs_0={r1}",
-        ]
+    read_type = {"ILLUMINA": "short_read", "ONT": "long_read"}.get(platform)
+    if read_type is None:
+        return None, None
+    host_reference_inputs = build_host_reference_inputs(read_type, host_genome, nucleotide_type, sample_name)
+
+    if read_type == "short_read":
+        workflow = os.path.join(SHORT_READ_WORKFLOW_DIR, "local_driver.wdl")
+        inputs = [f"fastqs_0={r1}"]
         if r2:
-            cmd.append(f"fastqs_1={r2}")
-        for input_name, suffix in (
-            ("bowtie2_index_tar", "bowtie2.tar"),
-            ("hisat2_index_tar", "hisat2.tar"),
-            ("kallisto_idx", "kallisto.idx"),
-        ):
-            reference_dir = os.path.join(host_reference_dir, input_name) if host_genome in ("mosquito", "bat") else host_reference_dir
-            reference_path = os.path.join(reference_dir, f"{host_reference_name}.{suffix}")
-            cmd.append(f"host_filter.{input_name}={reference_path}")
-        cmd += [
+            inputs.append(f"fastqs_1={r2}")
+        inputs += [
+            *host_reference_inputs,
             f"host_filter.nucleotide_type={nucleotide_type}",
             f"host_filter.host_genome={host_genome}",
-            "-i", cfg,
-            "--cfg", MINIWDL_CFG,
-            "-d", out_dir,
-            "--verbose",
-        ]
-    elif platform == "ONT":
-        job_name = f"czid_long_read_mngs_{sample_name}"
-        cfg = os.path.join(CZID_WORKFLOWS_DIR, f"cluster/skyline_long-read-mngs_config_{ref_version}.yml")
-        cmd = [
-            "miniwdl", "run",
-            os.path.join(LONG_READ_WORKFLOW_DIR, "run.wdl"),
-            "docker_image_id=czid-long-read-mngs",
-            f"input_fastq={r1}",
-            f"library_type={nucleotide_type}",
-            "-i", cfg,
-            "--cfg", MINIWDL_CFG,
-            "-d", out_dir,
-            "--verbose",
         ]
     else:
-        return None, None
+        workflow = os.path.join(LONG_READ_WORKFLOW_DIR, "run.wdl")
+        inputs = [
+            f"input_fastq={r1}",
+            f"library_type={nucleotide_type}",
+            *host_reference_inputs,
+        ]
 
+    workflow_name = f"{read_type.replace('_', '-')}-mngs"
+    job_name = f"czid_{read_type}_mngs_{sample_name}"
+    cfg = os.path.join(CZID_WORKFLOWS_DIR, f"cluster/skyline_{workflow_name}_config_{ref_version}.yml")
+    cmd = [
+        "miniwdl", "run", workflow,
+        f"docker_image_id=czid-{workflow_name}",
+        *inputs,
+        "-i", cfg,
+        "--cfg", MINIWDL_CFG,
+        "-d", out_dir,
+        "--verbose",
+    ]
     return job_name, cmd
 
 
@@ -156,9 +181,8 @@ def main():
     parser.add_argument("--serial", action="store_true", help="Chain samples via Slurm job dependencies, one at a time (default: submit all in parallel)")
     args = parser.parse_args()
 
-    df = load_samplesheet(args.samplesheet)
     prev_job_id = None
-    for _, row in df.iterrows():
+    for row in load_samplesheet(args.samplesheet):
         prev_job_id = submit_sample(row, args.output_dir, args.fastq_dir, args.serial, prev_job_id)
 
 
