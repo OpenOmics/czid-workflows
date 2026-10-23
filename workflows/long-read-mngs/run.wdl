@@ -582,7 +582,8 @@ task RunNTAlignment {
         CODE
         fi
         python3 /usr/local/lib/python3.10/dist-packages/idseq_utils/paf2blast6.py gsnap.paf
-        mv *frompaf.m8 "gsnap.m8" # TODO: rewrite paf2blast6.py to output in this format
+        mv *frompaf.m8 "gsnap.unsorted.m8" # TODO: rewrite paf2blast6.py to output in this format
+        sort -k1,1 -k2,2 -k12,12nr gsnap.unsorted.m8 > "gsnap.m8"
     >>>
 
     output {
@@ -592,6 +593,8 @@ task RunNTAlignment {
 
     runtime {
         docker: docker_image_id
+        cpu: 32
+        memory: "256 GiB"
     }
 }
 
@@ -643,6 +646,8 @@ task RunNRAlignment {
 
     runtime {
         docker: docker_image_id
+        cpu: 32
+        memory: "256 GiB"
     }
 }
 

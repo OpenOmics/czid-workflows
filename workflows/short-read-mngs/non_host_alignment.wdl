@@ -114,6 +114,8 @@ task RunAlignment_minimap2_out {
 
     runtime {
         docker: docker_image_id
+        cpu: 32
+        memory: "256 GiB"
     }
 }
 task RunAlignment_diamond_out {
@@ -161,6 +163,8 @@ task RunAlignment_diamond_out {
 
     runtime {
         docker: docker_image_id
+        cpu: 32
+        memory: "256 GiB"
     }
 }
 

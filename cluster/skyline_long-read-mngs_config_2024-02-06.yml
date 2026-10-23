@@ -1,0 +1,13 @@
+# skyline_long-read-mngs_config_2024-02-06.yml
+# Contains reference file paths on skyline HPC for long-read-mngs workflow. Using references derived from 2024-02-06 index generation.
+minimap_host_db: "/data/openomics/references/czid-workflows/host_filter/human_telomere/2023-07-05/host-genome-generation-1/hg38_phiX_T2T_combined.fa.gz"
+minimap_human_db: "/data/openomics/references/czid-workflows/host_filter/human_telomere/2023-07-05/host-genome-generation-1/hg38_phiX_T2T_combined.fa.gz"
+minimap2_local_db_path: "/data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/nt_compressed_shuffled.fa"
+diamond_local_db_path: "/data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/nr_compressed_shuffled.fa"
+accession2taxid_db: "/data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/accession2taxid.marisa"
+lineage_db: "/data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/taxid-lineages.marisa"
+taxon_blacklist: "/data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/taxon_ignore_list.txt"
+deuterostome_db: "/data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/deuterostome_taxids.txt"
+nt_info_db: "/data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/nt_info.marisa"
+use_taxon_whitelist: false
+taxon_whitelist: null

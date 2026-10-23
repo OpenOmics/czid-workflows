@@ -39,6 +39,8 @@ task RunAssembly {
   }
   runtime {
     docker: docker_image_id
+    cpu: 32
+    memory: "256 GiB"
   }
 }
 
