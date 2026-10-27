@@ -7,7 +7,7 @@ host_filter.hisat2_index_tar: /data/openomics/references/czid-workflows/host_fil
 host_filter.kallisto_idx: /data/openomics/references/czid-workflows/host_filter/human/20221031/kallisto_idx/human.kallisto.idx
 host_filter.human_bowtie2_index_tar: /data/openomics/references/czid-workflows/host_filter/human/20221031/bowtie2_index_tar/human.bowtie2.tar
 host_filter.human_hisat2_index_tar: /data/openomics/references/czid-workflows/host_filter/human/20221031/hisat2_index_tar/human.hisat2.tar
-host_filter.adapter_fasta: /data/openomics/references/czid-workflows/adapter_sequences/clipDb.fasta
+host_filter.adapter_fasta: /data/openomics/references/czid-workflows/adapter_sequences/illumina_TruSeq3-PE-2_NexteraPE-PE.fasta
 host_filter.max_input_fragments: 150000000
 host_filter.max_subsample_fragments: 2000000
 host_filter.ercc_index_tar: /data/openomics/references/czid-workflows/host_filter/ercc/20221031/bowtie2_index_tar/ercc.bowtie2.tar
