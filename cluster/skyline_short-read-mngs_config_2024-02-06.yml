@@ -15,8 +15,61 @@ non_host_alignment.accession2taxid_db: /data/openomics/references/czid-workflows
 non_host_alignment.lineage_db: /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/taxid-lineages.marisa
 non_host_alignment.taxon_blacklist: /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/taxon_ignore_list.txt
 non_host_alignment.deuterostome_db: /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/deuterostome_taxids.txt
-minimap2_local_db_path: /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/nt_compressed_shuffled.fa
-diamond_local_db_path: /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/nr_compressed_shuffled.fa
+minimap2_local_indices:
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/nt_k14_w8_20/nt.part_001.fa.idx
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/nt_k14_w8_20/nt.part_002.fa.idx
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/nt_k14_w8_20/nt.part_003.fa.idx
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/nt_k14_w8_20/nt.part_004.fa.idx
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/nt_k14_w8_20/nt.part_005.fa.idx
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/nt_k14_w8_20/nt.part_006.fa.idx
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/nt_k14_w8_20/nt.part_007.fa.idx
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/nt_k14_w8_20/nt.part_008.fa.idx
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/nt_k14_w8_20/nt.part_009.fa.idx
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/nt_k14_w8_20/nt.part_010.fa.idx
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/nt_k14_w8_20/nt.part_011.fa.idx
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/nt_k14_w8_20/nt.part_012.fa.idx
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/nt_k14_w8_20/nt.part_013.fa.idx
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/nt_k14_w8_20/nt.part_014.fa.idx
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/nt_k14_w8_20/nt.part_015.fa.idx
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/nt_k14_w8_20/nt.part_016.fa.idx
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/nt_k14_w8_20/nt.part_017.fa.idx
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/nt_k14_w8_20/nt.part_018.fa.idx
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/nt_k14_w8_20/nt.part_019.fa.idx
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/nt_k14_w8_20/nt.part_020.fa.idx
+diamond_local_indices:
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/diamond_index_chunksize_5500000000/000000-16289676-5500600998.dmnd
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/diamond_index_chunksize_5500000000/000001-16284335-5500629015.dmnd
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/diamond_index_chunksize_5500000000/000002-16289565-5500655794.dmnd
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/diamond_index_chunksize_5500000000/000003-16295857-5500618224.dmnd
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/diamond_index_chunksize_5500000000/000004-16288045-5500638682.dmnd
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/diamond_index_chunksize_5500000000/000005-16290740-5500660019.dmnd
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/diamond_index_chunksize_5500000000/000006-16290369-5500578604.dmnd
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/diamond_index_chunksize_5500000000/000007-16299062-5500666938.dmnd
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/diamond_index_chunksize_5500000000/000008-16283993-5500656402.dmnd
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/diamond_index_chunksize_5500000000/000009-16289135-5500597030.dmnd
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/diamond_index_chunksize_5500000000/000010-16289110-5500688783.dmnd
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/diamond_index_chunksize_5500000000/000011-16284641-5500635615.dmnd
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/diamond_index_chunksize_5500000000/000012-16288517-5500614886.dmnd
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/diamond_index_chunksize_5500000000/000013-16289345-5500644533.dmnd
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/diamond_index_chunksize_5500000000/000014-16293734-5500652516.dmnd
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/diamond_index_chunksize_5500000000/000015-16282575-5500679988.dmnd
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/diamond_index_chunksize_5500000000/000016-16290095-5500671244.dmnd
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/diamond_index_chunksize_5500000000/000017-16288066-5500599577.dmnd
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/diamond_index_chunksize_5500000000/000018-16292241-5500598190.dmnd
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/diamond_index_chunksize_5500000000/000019-16287155-5500637565.dmnd
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/diamond_index_chunksize_5500000000/000020-16284415-5500662286.dmnd
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/diamond_index_chunksize_5500000000/000021-16290105-5500685000.dmnd
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/diamond_index_chunksize_5500000000/000022-16288900-5500567710.dmnd
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/diamond_index_chunksize_5500000000/000023-16289767-5500604745.dmnd
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/diamond_index_chunksize_5500000000/000024-16289394-5500611774.dmnd
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/diamond_index_chunksize_5500000000/000025-16285807-5500651532.dmnd
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/diamond_index_chunksize_5500000000/000026-16288754-5500634616.dmnd
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/diamond_index_chunksize_5500000000/000027-16290208-5500636137.dmnd
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/diamond_index_chunksize_5500000000/000028-16296219-5500625708.dmnd
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/diamond_index_chunksize_5500000000/000029-16286565-5500680073.dmnd
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/diamond_index_chunksize_5500000000/000030-16290437-5500673546.dmnd
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/diamond_index_chunksize_5500000000/000031-16281797-5500640053.dmnd
+  - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/diamond_index_chunksize_5500000000/000032-10397209-3511694184.dmnd
 diamond_args: "--mid-sensitive"
 postprocess.nt_db: s3://czid-public-references/ncbi-indexes-prod/2024-02-06/index-generation-2/nt_compressed_shuffled.fa
 postprocess.nt_loc_db: /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/nt_loc.marisa
