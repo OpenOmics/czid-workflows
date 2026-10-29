@@ -15,6 +15,7 @@ import sys
 import os
 import argparse
 import csv
+import shlex
 import subprocess
 
 # Predefined configurations
@@ -156,7 +157,7 @@ def submit_sample(row, output_dir, fastq_dir, serial, prev_job_id):
     sbatch_path = os.path.join(out_dir, "submit.sbatch")
 
     script = SBATCH_HEADER.format(job_name=job_name, out_dir=out_dir)
-    script += " \\\n    ".join(cmd) + "\n"
+    script += shlex.join(cmd) + "\n"
 
     with open(sbatch_path, "w") as f:
         f.write(script)
