@@ -72,10 +72,10 @@ task RunAlignment_minimap2_out {
         String s3_wd_uri
         Array[File]+ fastas
         String db_path
-        String minimap2_args 
+        String minimap2_args
         String docker_image_id
-        Boolean? run_locally = false
-        File? local_minimap2_index 
+        Array[File] local_minimap2_indices = []
+        Int minimap2_threads = 7
         String prefix
         String minimap2_wdl_version
     }
@@ -84,8 +84,45 @@ task RunAlignment_minimap2_out {
         # --step-name minimap2_out
         set -euxo pipefail
 
-        if [[ "~{run_locally}" == true ]]; then
-          minimap2-scatter ~{minimap2_args} "~{local_minimap2_index}" "~{sep=' ' fastas}" > "~{prefix}.paf"
+        if [[ "~{length(local_minimap2_indices)}" -gt 0 ]]; then
+          python3 <<CODE
+        import os
+        import shlex
+        import subprocess
+
+        indices = [path for path in ["~{sep='", "' local_minimap2_indices}"] if path]
+        queries = ["~{sep='", "' fastas}"]
+        args = shlex.split("~{minimap2_args}")
+
+        indices.sort(key=lambda path: os.path.basename(path))
+        names = [os.path.basename(path) for path in indices]
+        expected = [f"nt.part_{i:03d}.fa.idx" for i in range(1, len(indices) + 1)]
+        if not indices or names != expected:
+            raise ValueError("Minimap2 indexes must be consecutive nt.part_NNN.fa.idx files starting at 001")
+
+        intermediates = []
+        for part, index in enumerate(indices, start=1):
+            intermediate = f"part_{part:03d}.intermediate"
+            subprocess.run(
+                [
+                    "minimap2-scatter", *args,
+                    "-t", str(~{minimap2_threads}),
+                    "--split-map", intermediate,
+                    index, *queries,
+                ],
+                check=True,
+            )
+            intermediates.append(intermediate)
+
+        subprocess.run(
+            [
+                "minimap2-scatter",
+                "--split-merge", "-o", "gsnap.paf",
+                *queries, ".", *intermediates, *args,
+            ],
+            check=True,
+        )
+        CODE
         else
           python3 <<CODE
         import os
@@ -114,6 +151,8 @@ task RunAlignment_minimap2_out {
 
     runtime {
         docker: docker_image_id
+        cpu: 32
+        memory: "256 GiB"
     }
 }
 task RunAlignment_diamond_out {
@@ -122,22 +161,63 @@ task RunAlignment_diamond_out {
         String s3_wd_uri
         Array[File]+ fastas
         String db_path
-        String diamond_args 
-        Boolean? run_locally = false
-        File? local_diamond_index
+        String diamond_args
+        Array[File] local_diamond_indices = []
         String prefix
         String diamond_wdl_version
     }
 
     command <<<
         # --step-name diamond_out
-        set -euxo pipefail  
-        if [[ "~{run_locally}" == true ]]; then 
-          diamond makedb --in "~{local_diamond_index}" -d reference
-          diamond blastx -d reference -q "~{sep=' ' fastas}" -o "rapsearch2.m8" "~{diamond_args}"
+        set -euxo pipefail
+        if [[ "~{length(local_diamond_indices)}" -gt 0 ]]; then
+          python3 <<CODE
+        import re
+        from pathlib import Path
+
+        from idseq_utils.diamond_scatter import blastx_chunk, blastx_join
+
+        indices = [path for path in ["~{sep='", "' local_diamond_indices}"] if path]
+        queries = ["~{sep='", "' fastas}"]
+        diamond_args = "~{diamond_args}"
+
+        parts = {}
+        for index in indices:
+            name = Path(index).name
+            match = re.fullmatch(r"(\d{6})-(\d+)-(\d+)\.dmnd", name)
+            if match is None:
+                raise ValueError(f"Unexpected DIAMOND chunk filename: {name}")
+            number, sequences, letters = map(int, match.groups())
+            if number in parts or sequences <= 0 or letters <= 0:
+                raise ValueError(f"Duplicate or invalid DIAMOND chunk: {name}")
+            parts[number] = index
+
+        if not parts or set(parts) != set(range(len(parts))):
+            raise ValueError("DIAMOND chunks must be consecutively numbered from 000000")
+
+        chunk_dir = "diamond_chunks"
+        for number in sorted(parts):
+            print(f"Aligning NR chunk {number:06d}", flush=True)
+            blastx_chunk(parts[number], chunk_dir, diamond_args, *queries)
+
+        expected = {
+            f"ref_{kind}_000000_{number:06d}"
+            for number in range(len(parts))
+            for kind in ("block", "dict")
+        }
+        actual = {path.name for path in Path(chunk_dir).iterdir()}
+        if actual != expected:
+            raise ValueError(
+                f"DIAMOND intermediate files differ: "
+                f"missing={sorted(expected - actual)}, "
+                f"unexpected={sorted(actual - expected)}"
+            )
+
+        blastx_join(chunk_dir, "rapsearch2.m8", diamond_args, *queries)
+        CODE
         else
           python3 <<CODE
-        import os 
+        import os
         from idseq_utils.batch_run_helpers import run_alignment
 
         run_alignment(
@@ -161,6 +241,8 @@ task RunAlignment_diamond_out {
 
     runtime {
         docker: docker_image_id
+        cpu: 32
+        memory: "256 GiB"
     }
 }
 
@@ -296,8 +378,8 @@ workflow czid_non_host_alignment {
     Boolean use_taxon_whitelist = false
     Boolean alignment_scalability = false
     File? local_gsnap_index
-    File? minimap2_local_db_path
-    File? diamond_local_db_path
+    Array[File] minimap2_local_indices = []
+    Array[File] diamond_local_indices = []
     String? local_gsnap_genome_name
     File? local_rapsearch2_index
     String minimap2_db = "s3://czid-public-references/minimap2-test/2021-01-22/nt_k14_w8_20/"
@@ -317,8 +399,7 @@ workflow czid_non_host_alignment {
       fastas = [select_first([host_filter_out_gsnap_filter_merged_fa, host_filter_out_gsnap_filter_1_fa])], #select_all([host_filter_out_gsnap_filter_1_fa, host_filter_out_gsnap_filter_2_fa]),
       db_path = minimap2_db,
       minimap2_args = minimap2_args,
-      run_locally = defined(minimap2_local_db_path),
-      local_minimap2_index = minimap2_local_db_path,
+      local_minimap2_indices = minimap2_local_indices,
       prefix= minimap2_prefix,
       minimap2_wdl_version=minimap2_wdl_version
   }
@@ -342,8 +423,7 @@ workflow czid_non_host_alignment {
       db_path = diamond_db,
       diamond_args = diamond_args,
       prefix = diamond_prefix,
-      run_locally = defined(diamond_local_db_path),
-      local_diamond_index = diamond_local_db_path,
+      local_diamond_indices = diamond_local_indices,
       diamond_wdl_version=diamond_wdl_version,
       docker_image_id = docker_image_id
   }
