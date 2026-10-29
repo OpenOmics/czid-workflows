@@ -1,7 +1,5 @@
 # skyline_long-read-mngs_config_2024-02-06.yml
 # Contains reference file paths on skyline HPC for long-read-mngs workflow. Using references derived from 2024-02-06 index generation.
-minimap_host_db: "/data/openomics/references/czid-workflows/host_filter/human_telomere/2023-07-05/host-genome-generation-1/hg38_phiX_T2T_combined.fa.gz"
-minimap_human_db: "/data/openomics/references/czid-workflows/host_filter/human_telomere/2023-07-05/host-genome-generation-1/hg38_phiX_T2T_combined.fa.gz"
 minimap2_local_indices:
   - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/nt_k14_w8_20/nt.part_001.fa.idx
   - /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/nt_k14_w8_20/nt.part_002.fa.idx
