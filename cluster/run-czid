@@ -22,7 +22,6 @@ CZID_WORKFLOWS_DIR = "/data/openomics/prod/czid-workflows"
 SHORT_READ_WORKFLOW_DIR = os.path.join(CZID_WORKFLOWS_DIR, "workflows/short-read-mngs")
 LONG_READ_WORKFLOW_DIR = os.path.join(CZID_WORKFLOWS_DIR, "workflows/long-read-mngs")
 MINIWDL_CFG = os.path.join(CZID_WORKFLOWS_DIR, "cluster/miniwdl.cfg")
-DEFAULT_REFERENCE_VERSION = "2024-02-06"
 DEFAULT_HOST_GENOME = "human"
 HOST_REFERENCE_ROOT = "/data/openomics/references/czid-workflows/host_filter"
 HOST_REFERENCE_TEMPLATES = {
@@ -103,7 +102,6 @@ def build_command(row, output_dir, fastq_dir):
     r1 = os.path.join(fastq_dir, row["seq_fastq_R1"])
     r2_name = optional_value(row, "seq_fastq_R2")
     r2 = os.path.join(fastq_dir, r2_name) if r2_name else None
-    ref_version = optional_value(row, "reference_version", DEFAULT_REFERENCE_VERSION)
     host_genome = optional_value(row, "host_genome", DEFAULT_HOST_GENOME)
 
     out_dir = os.path.join(output_dir, sample_name)
@@ -133,7 +131,7 @@ def build_command(row, output_dir, fastq_dir):
 
     workflow_name = f"{read_type.replace('_', '-')}-mngs"
     job_name = f"czid_{read_type}_mngs_{sample_name}"
-    cfg = os.path.join(CZID_WORKFLOWS_DIR, f"cluster/skyline_{workflow_name}_config_{ref_version}.yml")
+    cfg = os.path.join(CZID_WORKFLOWS_DIR, f"cluster/skyline_{workflow_name}_config_2024-02-06.yml")
     cmd = [
         "miniwdl", "run", workflow,
         f"docker_image_id=czid-{workflow_name}",
