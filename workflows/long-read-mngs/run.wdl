@@ -825,7 +825,7 @@ task SummarizeHitsNT {
         File nt_top_m8
         File read_to_contig_tsv
         File deuterostome_db
-        File taxon_whitelist
+        File? taxon_whitelist
         File taxon_blacklist
         Boolean use_deuterostome_filter
         Boolean use_taxon_whitelist
@@ -845,7 +845,7 @@ task SummarizeHitsNT {
             "nt",
             "~{read_to_contig_tsv}",
             ~{if use_deuterostome_filter then '"~{deuterostome_db}"' else 'None'},
-            ~{if use_taxon_whitelist then '"~{taxon_whitelist}"' else 'None'},
+            ~{if use_taxon_whitelist then '"~{select_first([taxon_whitelist])}"' else 'None'},
             "~{taxon_blacklist}",
             "~{lineage_db}",
             "~{accession2taxid_db}",
@@ -872,7 +872,7 @@ task SummarizeHitsNR {
         File nr_top_m8
         File read_to_contig_tsv
         File deuterostome_db
-        File taxon_whitelist
+        File? taxon_whitelist
         File taxon_blacklist
         Boolean use_deuterostome_filter
         Boolean use_taxon_whitelist
@@ -892,7 +892,7 @@ task SummarizeHitsNR {
             "nr",
             "~{read_to_contig_tsv}",
             ~{if use_deuterostome_filter then '"~{deuterostome_db}"' else 'None'},
-            ~{if use_taxon_whitelist then '"~{taxon_whitelist}"' else 'None'},
+            ~{if use_taxon_whitelist then '"~{select_first([taxon_whitelist])}"' else 'None'},
             "~{taxon_blacklist}",
             "~{lineage_db}",
             "~{accession2taxid_db}",
@@ -1075,7 +1075,7 @@ task SummarizeContigsNT {
         File nt_hit_summary
         File lineage_db
         File deuterostome_db
-        File taxon_whitelist
+        File? taxon_whitelist
         File taxon_blacklist
         Boolean use_deuterostome_filter
         Boolean use_taxon_whitelist
@@ -1093,7 +1093,7 @@ task SummarizeContigsNT {
             "~{nt_hit_summary}",
             "~{lineage_db}",
             ~{if use_deuterostome_filter then '"~{deuterostome_db}"' else 'None'},
-            ~{if use_taxon_whitelist then '"~{taxon_whitelist}"' else 'None'},
+            ~{if use_taxon_whitelist then '"~{select_first([taxon_whitelist])}"' else 'None'},
             "~{taxon_blacklist}",
             "nt",
             "refined_gsnap_counts_with_dcr.json",
@@ -1120,7 +1120,7 @@ task SummarizeContigsNR {
         File nr_hit_summary
         File lineage_db
         File deuterostome_db
-        File taxon_whitelist
+        File? taxon_whitelist
         File taxon_blacklist
         Boolean use_deuterostome_filter
         Boolean use_taxon_whitelist
@@ -1138,7 +1138,7 @@ task SummarizeContigsNR {
             "~{nr_hit_summary}",
             "~{lineage_db}",
             ~{if use_deuterostome_filter then '"~{deuterostome_db}"' else 'None'},
-            ~{if use_taxon_whitelist then '"~{taxon_whitelist}"' else 'None'},
+            ~{if use_taxon_whitelist then '"~{select_first([taxon_whitelist])}"' else 'None'},
             "~{taxon_blacklist}",
             "nr",
             "refined_rapsearch2_counts_with_dcr.json",
@@ -1200,7 +1200,7 @@ task ComputeMergedTaxonCounts {
 
         File lineage_db
         File deuterostome_db
-        File taxon_whitelist
+        File? taxon_whitelist
         File taxon_blacklist
 
         Boolean use_deuterostome_filter
@@ -1222,7 +1222,7 @@ task ComputeMergedTaxonCounts {
             "~{nr_contig_summary_json}",
             "~{lineage_db}",
             ~{if use_deuterostome_filter then '"~{deuterostome_db}"' else 'None'},
-            ~{if use_taxon_whitelist then '"~{taxon_whitelist}"' else 'None'},
+            ~{if use_taxon_whitelist then '"~{select_first([taxon_whitelist])}"' else 'None'},
             "~{taxon_blacklist}",
             "merged.m8",
             "merged.hitsummary2.tab",
@@ -1364,7 +1364,7 @@ workflow czid_long_read_mngs {
 
         File input_fastq
 
-        String library_type = "RNA"
+        String library_type
         String guppy_basecaller_setting = "hac" # fast, hac, super
 
         # The subsample_depth used to be 4000000 because to get 1 million reads we need to get 
@@ -1382,7 +1382,7 @@ workflow czid_long_read_mngs {
         File lineage_db
         File accession2taxid_db
         File taxon_blacklist
-        File taxon_whitelist = "s3://czid-public-references/taxonomy/2020-02-10/respiratory_taxon_whitelist.txt"
+        File? taxon_whitelist
         Int min_read_length = 36
         File deuterostome_db
         File nt_info_db
