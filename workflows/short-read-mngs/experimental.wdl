@@ -158,12 +158,12 @@ workflow czid_experimental {
     File nonhost_fasta_refined_taxid_annot_fasta
     File duplicate_clusters_csv
     String file_ext = "fastq"
-    String nt_db = "s3://czid-public-references/ncbi-sources/2021-01-22/nt"
-    File nt_loc_db = "s3://czid-public-references/alignment_data/2021-01-22/nt_loc.db"
-    File nt_info_db = "s3://czid-public-references/alignment_data/2021-01-22/nt_info.db"
-    File lineage_db = "s3://czid-public-references/taxonomy/2021-01-22/taxid-lineages.db"
-    File resist_genome_db = "s3://czid-public-references/amr/ARGannot_r2.fasta"
-    File resist_genome_bed = "s3://czid-public-references/amr/argannot_genome.bed"
+    String nt_db
+    File nt_loc_db
+    File nt_info_db
+    File lineage_db
+    File resist_genome_db
+    File resist_genome_bed
     Boolean use_taxon_whitelist = false
   }
 

@@ -24,7 +24,7 @@ workflow czid_host_filter {
     File human_bowtie2_index_tar
     File human_hisat2_index_tar
 
-    File ercc_index_tar = "s3://czid-public-references/host_filter/ercc/20221031/bowtie2_index_tar/ercc.bowtie2.tar" # default ercc index
+    File ercc_index_tar
 
     Int max_input_fragments
     Int max_subsample_fragments
