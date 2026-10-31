@@ -60,5 +60,3 @@ lineage_db: "/data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02
 taxon_blacklist: "/data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/taxon_ignore_list.txt"
 deuterostome_db: "/data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/deuterostome_taxids.txt"
 nt_info_db: "/data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/nt_info.marisa"
-use_taxon_whitelist: false
-taxon_whitelist: null

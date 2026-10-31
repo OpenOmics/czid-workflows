@@ -488,14 +488,14 @@ workflow czid_postprocess {
     File duplicate_cluster_sizes_tsv
     File czid_dedup_out_duplicate_clusters_csv
     String index_version = "2021-01-22" # FIXME: vestigial input
-    String nt_db = "s3://czid-public-references/ncbi-sources/2021-01-22/nt"
-    File nt_loc_db = "s3://czid-public-references/alignment_data/2021-01-22/nt_loc.db"
-    String nr_db = "s3://czid-public-references/ncbi-sources/2021-01-22/nr"
-    File nr_loc_db = "s3://czid-public-references/alignment_data/2021-01-22/nr_loc.db"
-    File lineage_db = "s3://czid-public-references/taxonomy/2021-01-22/taxid-lineages.db"
-    File accession2taxid_db = "s3://czid-public-references/ncbi-indexes-prod/2021-01-22/index-generation-2/accession2taxid.marisa"
-    File taxon_blacklist = "s3://czid-public-references/taxonomy/2021-01-22/taxon_blacklist.txt"
-    File deuterostome_db = "s3://czid-public-references/taxonomy/2021-01-22/deuterostome_taxids.txt"
+    String nt_db
+    File nt_loc_db
+    String nr_db
+    File nr_loc_db
+    File lineage_db
+    File accession2taxid_db
+    File taxon_blacklist
+    File deuterostome_db
     Boolean use_deuterostome_filter = true
     Boolean use_taxon_whitelist = false
     Int min_contig_length = 100
