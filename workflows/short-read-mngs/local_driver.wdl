@@ -19,6 +19,10 @@ workflow czid_short_read_mngs {
         String diamond_args
         String non_host_gsnap_genome_name = "nt_k16"
         String s3_wd_uri = ""
+        File report_script
+        File report_utils
+        File versioned_taxid_lineages_csv
+        String report_lineage_version
     }
     call stage1.czid_host_filter as host_filter {
         input:
@@ -57,7 +61,15 @@ workflow czid_short_read_mngs {
         rapsearch2_out_rapsearch2_hitsummary_tab = non_host_alignment.rapsearch2_out_rapsearch2_hitsummary_tab,
         rapsearch2_out_rapsearch2_counts_with_dcr_json = non_host_alignment.rapsearch2_out_rapsearch2_counts_with_dcr_json,
         docker_image_id = docker_image_id,
-        s3_wd_uri = s3_wd_uri
+        s3_wd_uri = s3_wd_uri,
+        report_script = report_script,
+        report_utils = report_utils,
+        report_total_reads_count = host_filter.input_read_count,
+        report_before_subsampling_count = select_first([host_filter.hisat2_human_filtered_out_count, host_filter.hisat2_host_filtered_out_count]),
+        report_after_subsampling_count = host_filter.subsampled_out_count,
+        report_ercc_counts_tsv = host_filter.bowtie2_ERCC_counts_tsv,
+        versioned_taxid_lineages_csv = versioned_taxid_lineages_csv,
+        report_lineage_version = report_lineage_version
     }
     call stage4.czid_experimental as experimental {
         input:

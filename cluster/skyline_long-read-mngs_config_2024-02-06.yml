@@ -60,3 +60,8 @@ lineage_db: "/data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02
 taxon_blacklist: "/data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/taxon_ignore_list.txt"
 deuterostome_db: "/data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/deuterostome_taxids.txt"
 nt_info_db: "/data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/nt_info.marisa"
+# Configurations for the long-read-mngs workflow report generation
+report_script: /data/openomics/prod/czid-workflows/lib/reporting/long_read_report.py
+report_utils: /data/openomics/prod/czid-workflows/lib/reporting/mngs_report_utils.py
+versioned_taxid_lineages_csv: /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/versioned-taxid-lineages.csv.gz
+report_lineage_version: "2024-02-06"

@@ -81,3 +81,8 @@ experimental.nt_info_db: /data/openomics/references/czid-workflows/ncbi-indexes-
 experimental.lineage_db: /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/taxid-lineages.marisa
 experimental.resist_genome_db: /data/openomics/references/czid-workflows/amr/ARGannot_r2.fasta
 experimental.resist_genome_bed: /data/openomics/references/czid-workflows/amr/argannot_genome.bed
+# Configurations for the short-read-mngs workflow report generation
+report_script: /data/openomics/prod/czid-workflows/lib/reporting/short_read_report.py
+report_utils: /data/openomics/prod/czid-workflows/lib/reporting/mngs_report_utils.py
+versioned_taxid_lineages_csv: /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/versioned-taxid-lineages.csv.gz
+report_lineage_version: "2024-02-06"

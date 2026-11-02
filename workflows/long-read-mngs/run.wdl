@@ -1356,6 +1356,47 @@ task GenerateCoverageViz {
     }
 }
 
+task GenerateLongReadReport {
+    input {
+        String docker_image_id
+        File refined_taxon_counts_json
+        File combined_contig_summary_json
+        File contig_stats_json
+        File contig_base_counts_json
+        File contigs_fasta
+        File report_script
+        File report_utils
+        File report_total_bases_count
+        File report_before_subsampling_count
+        File report_after_subsampling_count
+        File versioned_taxid_lineages_csv
+        String report_lineage_version
+    }
+    command <<<
+        set -euxo pipefail
+        mkdir -p reporting
+        cp '~{report_script}' reporting/long_read_report.py
+        cp '~{report_utils}' reporting/mngs_report_utils.py
+        python3 reporting/long_read_report.py \
+            '~{refined_taxon_counts_json}' long_read_report.csv \
+            --total-count '~{report_total_bases_count}' \
+            --before-subsampling '~{report_before_subsampling_count}' \
+            --after-subsampling '~{report_after_subsampling_count}' \
+            --contig-summary '~{combined_contig_summary_json}' \
+            --contig-stats '~{contig_stats_json}' \
+            --contig-base-counts '~{contig_base_counts_json}' \
+            --contigs-fasta '~{contigs_fasta}' \
+            --lineage-csv '~{versioned_taxid_lineages_csv}' \
+            --lineage-version '~{report_lineage_version}'
+    >>>
+    output {
+        File report_csv = "long_read_report.csv"
+    }
+    runtime {
+        docker: docker_image_id
+    }
+}
+
 workflow czid_long_read_mngs {
     input {
         String docker_image_id
@@ -1399,6 +1440,11 @@ workflow czid_long_read_mngs {
 
         Boolean use_deuterostome_filter = true
         Boolean use_taxon_whitelist = false
+
+        File report_script
+        File report_utils
+        File versioned_taxid_lineages_csv
+        String report_lineage_version
     }
 
     call RunValidateInput {
@@ -1674,6 +1720,23 @@ workflow czid_long_read_mngs {
             docker_image_id = docker_image_id,
     }
 
+    call GenerateLongReadReport {
+        input:
+            docker_image_id = docker_image_id,
+            report_script = report_script,
+            report_utils = report_utils,
+            report_total_bases_count = RunValidateInput.raw_bases,
+            report_before_subsampling_count = RunHumanFilter.human_filtered_bases,
+            report_after_subsampling_count = RunSubsampling.subsampled_bases,
+            refined_taxon_counts_json = CombineTaxonCounts.refined_taxon_counts_with_dcr_json,
+            combined_contig_summary_json = CombineJson.combined_contig_summary_json,
+            contig_stats_json = GenerateContigStats.contig_stats_json,
+            contig_base_counts_json = GenerateContigStats.contig_base_counts,
+            contigs_fasta = RunAssembly.assembled_fasta,
+            versioned_taxid_lineages_csv = versioned_taxid_lineages_csv,
+            report_lineage_version = report_lineage_version
+    }
+
     output {
         # RunValidateInput
         File raw_reads = RunValidateInput.raw_reads
@@ -1759,5 +1822,6 @@ workflow czid_long_read_mngs {
         File coverage_viz_out_coverage_viz_summary_json = GenerateCoverageViz.coverage_viz_summary_json
         File? coverage_viz_out_count = GenerateCoverageViz.output_read_count
         Array[File] coverage_viz = GenerateCoverageViz.coverage_viz
+        File long_read_report_csv = GenerateLongReadReport.report_csv
     }
 }

@@ -470,6 +470,47 @@ task GenerateTaxidLocator {
   }
 }
 
+task GenerateShortReadReport {
+  input {
+    String docker_image_id
+    File refined_taxon_counts_json
+    File combined_contig_summary_json
+    File contig_stats_json
+    File contigs_fasta
+    File report_script
+    File report_utils
+    File report_total_reads_count
+    File report_before_subsampling_count
+    File report_after_subsampling_count
+    File report_ercc_counts_tsv
+    File versioned_taxid_lineages_csv
+    String report_lineage_version
+  }
+  command<<<
+  set -euxo pipefail
+  mkdir -p reporting
+  cp '~{report_script}' reporting/short_read_report.py
+  cp '~{report_utils}' reporting/mngs_report_utils.py
+  python3 reporting/short_read_report.py \
+    '~{refined_taxon_counts_json}' short_read_report.csv \
+    --total-count '~{report_total_reads_count}' \
+    --before-subsampling '~{report_before_subsampling_count}' \
+    --after-subsampling '~{report_after_subsampling_count}' \
+    --ercc-counts '~{report_ercc_counts_tsv}' \
+    --contig-summary '~{combined_contig_summary_json}' \
+    --contig-stats '~{contig_stats_json}' \
+    --contigs-fasta '~{contigs_fasta}' \
+    --lineage-csv '~{versioned_taxid_lineages_csv}' \
+    --lineage-version '~{report_lineage_version}'
+  >>>
+  output {
+    File report_csv = "short_read_report.csv"
+  }
+  runtime {
+    docker: docker_image_id
+  }
+}
+
 workflow czid_postprocess {
   input {
     String docker_image_id
@@ -499,6 +540,14 @@ workflow czid_postprocess {
     Boolean use_deuterostome_filter = true
     Boolean use_taxon_whitelist = false
     Int min_contig_length = 100
+    File report_script
+    File report_utils
+    File report_total_reads_count
+    File report_before_subsampling_count
+    File report_after_subsampling_count
+    File report_ercc_counts_tsv
+    File versioned_taxid_lineages_csv
+    String report_lineage_version
   }
 
   call RunAssembly {
@@ -680,6 +729,23 @@ workflow czid_postprocess {
       assembly_refined_taxid_annot_mapped_only_fasta = GenerateTaxidFasta.assembly_refined_taxid_annot_mapped_only_fasta
   }
 
+  call GenerateShortReadReport {
+    input:
+      docker_image_id = docker_image_id,
+      report_script = report_script,
+      report_utils = report_utils,
+      report_total_reads_count = report_total_reads_count,
+      report_before_subsampling_count = report_before_subsampling_count,
+      report_after_subsampling_count = report_after_subsampling_count,
+      report_ercc_counts_tsv = report_ercc_counts_tsv,
+      refined_taxon_counts_json = CombineTaxonCounts.assembly_refined_taxon_counts_with_dcr_json,
+      combined_contig_summary_json = CombineJson.assembly_combined_contig_summary_json,
+      contig_stats_json = RunAssembly.assembly_contig_stats_json,
+      contigs_fasta = RunAssembly.assembly_contigs_fasta,
+      versioned_taxid_lineages_csv = versioned_taxid_lineages_csv,
+      report_lineage_version = report_lineage_version
+  }
+
   output {
     File assembly_out_assembly_contigs_fasta = RunAssembly.assembly_contigs_fasta
     File assembly_out_assembly_contigs_all_fasta = RunAssembly.assembly_contigs_all_fasta
@@ -733,5 +799,6 @@ workflow czid_postprocess {
     File refined_taxid_locator_out_assembly_refined_taxid_locations_family_nr_json = GenerateTaxidLocator.assembly_refined_taxid_locations_family_nr_json
     File refined_taxid_locator_out_assembly_refined_taxid_locations_combined_json = GenerateTaxidLocator.assembly_refined_taxid_locations_combined_json
     File? refined_taxid_locator_out_count = GenerateTaxidLocator.output_read_count
+    File short_read_report_csv = GenerateShortReadReport.report_csv
   }
 }
