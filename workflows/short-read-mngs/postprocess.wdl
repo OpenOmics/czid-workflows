@@ -483,8 +483,11 @@ task GenerateShortReadReport {
     File report_before_subsampling_count
     File report_after_subsampling_count
     File report_ercc_counts_tsv
-    File versioned_taxid_lineages_csv
-    String report_lineage_version
+    File report_taxonomy_nodes_dmp
+    File report_taxonomy_names_dmp
+    File report_taxonomy_merged_dmp
+    File report_taxonomy_delnodes_dmp
+    String report_taxonomy_date
   }
   command<<<
   set -euxo pipefail
@@ -500,14 +503,21 @@ task GenerateShortReadReport {
     --contig-summary '~{combined_contig_summary_json}' \
     --contig-stats '~{contig_stats_json}' \
     --contigs-fasta '~{contigs_fasta}' \
-    --lineage-csv '~{versioned_taxid_lineages_csv}' \
-    --lineage-version '~{report_lineage_version}'
+    --taxonomy-nodes '~{report_taxonomy_nodes_dmp}' \
+    --taxonomy-names '~{report_taxonomy_names_dmp}' \
+    --taxonomy-merged '~{report_taxonomy_merged_dmp}' \
+    --taxonomy-delnodes '~{report_taxonomy_delnodes_dmp}' \
+    --taxonomy-date '~{report_taxonomy_date}'
   >>>
   output {
     File report_csv = "short_read_report.csv"
+    File taxonomy_resolution_csv = "short_read_report.csv.taxonomy.csv"
+    File taxonomy_metadata_json = "short_read_report.csv.taxonomy.json"
   }
   runtime {
     docker: docker_image_id
+    cpu: 4
+    memory: "4 GiB"
   }
 }
 
@@ -546,8 +556,11 @@ workflow czid_postprocess {
     File report_before_subsampling_count
     File report_after_subsampling_count
     File report_ercc_counts_tsv
-    File versioned_taxid_lineages_csv
-    String report_lineage_version
+    File report_taxonomy_nodes_dmp
+    File report_taxonomy_names_dmp
+    File report_taxonomy_merged_dmp
+    File report_taxonomy_delnodes_dmp
+    String report_taxonomy_date
   }
 
   call RunAssembly {
@@ -742,8 +755,11 @@ workflow czid_postprocess {
       combined_contig_summary_json = CombineJson.assembly_combined_contig_summary_json,
       contig_stats_json = RunAssembly.assembly_contig_stats_json,
       contigs_fasta = RunAssembly.assembly_contigs_fasta,
-      versioned_taxid_lineages_csv = versioned_taxid_lineages_csv,
-      report_lineage_version = report_lineage_version
+      report_taxonomy_nodes_dmp = report_taxonomy_nodes_dmp,
+      report_taxonomy_names_dmp = report_taxonomy_names_dmp,
+      report_taxonomy_merged_dmp = report_taxonomy_merged_dmp,
+      report_taxonomy_delnodes_dmp = report_taxonomy_delnodes_dmp,
+      report_taxonomy_date = report_taxonomy_date
   }
 
   output {
@@ -800,5 +816,7 @@ workflow czid_postprocess {
     File refined_taxid_locator_out_assembly_refined_taxid_locations_combined_json = GenerateTaxidLocator.assembly_refined_taxid_locations_combined_json
     File? refined_taxid_locator_out_count = GenerateTaxidLocator.output_read_count
     File short_read_report_csv = GenerateShortReadReport.report_csv
+    File short_read_taxonomy_resolution_csv = GenerateShortReadReport.taxonomy_resolution_csv
+    File short_read_taxonomy_metadata_json = GenerateShortReadReport.taxonomy_metadata_json
   }
 }

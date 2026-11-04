@@ -84,5 +84,8 @@ experimental.resist_genome_bed: /data/openomics/references/czid-workflows/amr/ar
 # Configurations for the short-read-mngs workflow report generation
 report_script: /data/openomics/prod/czid-workflows/lib/reporting/short_read_report.py
 report_utils: /data/openomics/prod/czid-workflows/lib/reporting/mngs_report_utils.py
-versioned_taxid_lineages_csv: /data/openomics/references/czid-workflows/ncbi-indexes-prod/2024-02-06/versioned-taxid-lineages.csv.gz
-report_lineage_version: "2024-02-06"
+report_taxonomy_nodes_dmp: /data/openomics/references/czid-workflows/taxonomy/2026-11-01/nodes.dmp
+report_taxonomy_names_dmp: /data/openomics/references/czid-workflows/taxonomy/2026-11-01/names.dmp
+report_taxonomy_merged_dmp: /data/openomics/references/czid-workflows/taxonomy/2026-11-01/merged.dmp
+report_taxonomy_delnodes_dmp: /data/openomics/references/czid-workflows/taxonomy/2026-11-01/delnodes.dmp
+report_taxonomy_date: "2026-11-01"

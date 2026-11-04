@@ -1369,8 +1369,11 @@ task GenerateLongReadReport {
         File report_total_bases_count
         File report_before_subsampling_count
         File report_after_subsampling_count
-        File versioned_taxid_lineages_csv
-        String report_lineage_version
+        File report_taxonomy_nodes_dmp
+        File report_taxonomy_names_dmp
+        File report_taxonomy_merged_dmp
+        File report_taxonomy_delnodes_dmp
+        String report_taxonomy_date
     }
     command <<<
         set -euxo pipefail
@@ -1386,14 +1389,21 @@ task GenerateLongReadReport {
             --contig-stats '~{contig_stats_json}' \
             --contig-base-counts '~{contig_base_counts_json}' \
             --contigs-fasta '~{contigs_fasta}' \
-            --lineage-csv '~{versioned_taxid_lineages_csv}' \
-            --lineage-version '~{report_lineage_version}'
+            --taxonomy-nodes '~{report_taxonomy_nodes_dmp}' \
+            --taxonomy-names '~{report_taxonomy_names_dmp}' \
+            --taxonomy-merged '~{report_taxonomy_merged_dmp}' \
+            --taxonomy-delnodes '~{report_taxonomy_delnodes_dmp}' \
+            --taxonomy-date '~{report_taxonomy_date}'
     >>>
     output {
         File report_csv = "long_read_report.csv"
+        File taxonomy_resolution_csv = "long_read_report.csv.taxonomy.csv"
+        File taxonomy_metadata_json = "long_read_report.csv.taxonomy.json"
     }
     runtime {
         docker: docker_image_id
+        cpu: 4
+        memory: "4 GiB"
     }
 }
 
@@ -1443,8 +1453,11 @@ workflow czid_long_read_mngs {
 
         File report_script
         File report_utils
-        File versioned_taxid_lineages_csv
-        String report_lineage_version
+        File report_taxonomy_nodes_dmp
+        File report_taxonomy_names_dmp
+        File report_taxonomy_merged_dmp
+        File report_taxonomy_delnodes_dmp
+        String report_taxonomy_date
     }
 
     call RunValidateInput {
@@ -1733,8 +1746,11 @@ workflow czid_long_read_mngs {
             contig_stats_json = GenerateContigStats.contig_stats_json,
             contig_base_counts_json = GenerateContigStats.contig_base_counts,
             contigs_fasta = RunAssembly.assembled_fasta,
-            versioned_taxid_lineages_csv = versioned_taxid_lineages_csv,
-            report_lineage_version = report_lineage_version
+            report_taxonomy_nodes_dmp = report_taxonomy_nodes_dmp,
+            report_taxonomy_names_dmp = report_taxonomy_names_dmp,
+            report_taxonomy_merged_dmp = report_taxonomy_merged_dmp,
+            report_taxonomy_delnodes_dmp = report_taxonomy_delnodes_dmp,
+            report_taxonomy_date = report_taxonomy_date
     }
 
     output {
@@ -1823,5 +1839,7 @@ workflow czid_long_read_mngs {
         File? coverage_viz_out_count = GenerateCoverageViz.output_read_count
         Array[File] coverage_viz = GenerateCoverageViz.coverage_viz
         File long_read_report_csv = GenerateLongReadReport.report_csv
+        File long_read_taxonomy_resolution_csv = GenerateLongReadReport.taxonomy_resolution_csv
+        File long_read_taxonomy_metadata_json = GenerateLongReadReport.taxonomy_metadata_json
     }
 }

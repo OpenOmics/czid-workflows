@@ -21,8 +21,11 @@ workflow czid_short_read_mngs {
         String s3_wd_uri = ""
         File report_script
         File report_utils
-        File versioned_taxid_lineages_csv
-        String report_lineage_version
+        File report_taxonomy_nodes_dmp
+        File report_taxonomy_names_dmp
+        File report_taxonomy_merged_dmp
+        File report_taxonomy_delnodes_dmp
+        String report_taxonomy_date
     }
     call stage1.czid_host_filter as host_filter {
         input:
@@ -68,8 +71,11 @@ workflow czid_short_read_mngs {
         report_before_subsampling_count = select_first([host_filter.hisat2_human_filtered_out_count, host_filter.hisat2_host_filtered_out_count]),
         report_after_subsampling_count = host_filter.subsampled_out_count,
         report_ercc_counts_tsv = host_filter.bowtie2_ERCC_counts_tsv,
-        versioned_taxid_lineages_csv = versioned_taxid_lineages_csv,
-        report_lineage_version = report_lineage_version
+        report_taxonomy_nodes_dmp = report_taxonomy_nodes_dmp,
+        report_taxonomy_names_dmp = report_taxonomy_names_dmp,
+        report_taxonomy_merged_dmp = report_taxonomy_merged_dmp,
+        report_taxonomy_delnodes_dmp = report_taxonomy_delnodes_dmp,
+        report_taxonomy_date = report_taxonomy_date
     }
     call stage4.czid_experimental as experimental {
         input:
