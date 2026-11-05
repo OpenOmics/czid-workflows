@@ -41,8 +41,8 @@ rebuild: ## Rebuild docker images for a given workflow. If you change anything i
 pull: .pull-$(WORKFLOW) ## Pull docker image from public github repository. Faster than build. Possibly less accurate. Defaults to latest eg. make pull WORKFLOW=long-read-mngs
 
 .pull-%: 
-	docker pull ghcr.io/chanzuckerberg/czid-workflows/czid-$(WORKFLOW)-public:$(VERSION)
-	docker tag ghcr.io/chanzuckerberg/czid-workflows/czid-$(WORKFLOW)-public:$(VERSION) czid-$(WORKFLOW)
+	docker pull ghcr.io/openomics/czid-workflows/czid-$(WORKFLOW):$(VERSION)
+	docker tag ghcr.io/openomics/czid-workflows/czid-$(WORKFLOW):$(VERSION) czid-$(WORKFLOW)
 	touch .build-$*
 
 .PHONY: lint

@@ -56,6 +56,13 @@ RUN wget https://github.com/shenwei356/seqkit/releases/download/v2.3.0/seqkit_li
     tar -xvf seqkit_linux_386.tar.gz && \
     rm seqkit_linux_386.tar.gz && \
     cp seqkit /usr/local/bin
+
+# Taxonkit for taxonomy annotations in CSV reports
+RUN wget https://github.com/shenwei356/taxonkit/releases/download/v0.20.0/taxonkit_linux_amd64.tar.gz && \
+    tar -xvf taxonkit_linux_amd64.tar.gz && \
+    rm taxonkit_linux_amd64.tar.gz && \
+    cp taxonkit /usr/local/bin
+
 ENV PATH=$PATH:$(pwd)
 
 ARG FLYE_VER="2.9.2"

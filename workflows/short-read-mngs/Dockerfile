@@ -189,6 +189,13 @@ RUN cd libdeflate-* && make -j8 && make install
 RUN ldconfig
 RUN git clone https://github.com/mlin/fastp.git && git -C fastp checkout c427e57
 RUN cd fastp && make -j8 && ./fastp test && cp fastp /usr/local/bin
+
+# Taxonkit for taxonomy annotations in CSV reports
+RUN wget https://github.com/shenwei356/taxonkit/releases/download/v0.20.0/taxonkit_linux_amd64.tar.gz && \
+    tar -xvf taxonkit_linux_amd64.tar.gz && \
+    rm taxonkit_linux_amd64.tar.gz && \
+    cp taxonkit /usr/local/bin
+
 WORKDIR /
 RUN wget -nv -O /tmp/HISAT2.zip https://czid-public-references.s3.us-west-2.amazonaws.com/test/hisat2/hisat2.zip \
         && unzip /tmp/HISAT2.zip && rm /tmp/HISAT2.zip

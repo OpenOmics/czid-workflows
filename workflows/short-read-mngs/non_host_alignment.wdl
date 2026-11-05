@@ -71,7 +71,7 @@ task RunAlignment_minimap2_out {
     input {
         String s3_wd_uri
         Array[File]+ fastas
-        String db_path
+        String? db_path
         String minimap2_args
         String docker_image_id
         Array[File] local_minimap2_indices = []
@@ -160,7 +160,7 @@ task RunAlignment_diamond_out {
         String docker_image_id
         String s3_wd_uri
         Array[File]+ fastas
-        String db_path
+        String? db_path
         String diamond_args
         Array[File] local_diamond_indices = []
         String prefix
@@ -368,12 +368,12 @@ workflow czid_non_host_alignment {
     File duplicate_cluster_sizes_tsv
     File czid_dedup_out_duplicate_clusters_csv
     String index_version = "2021-01-22"
-    File lineage_db = "s3://czid-public-references/taxonomy/2021-01-22/taxid-lineages.db"
-    File accession2taxid_db = "s3://czid-public-references/alignment_data/2021-01-22/accession2taxid.db"
-    File taxon_blacklist = "s3://czid-public-references/taxonomy/2021-01-22/taxon_blacklist.txt"
+    File lineage_db
+    File accession2taxid_db
+    File taxon_blacklist
     String index_dir_suffix = index_version
     Int min_read_length = 36
-    File deuterostome_db = "s3://czid-public-references/taxonomy/2021-01-22/deuterostome_taxids.txt"
+    File deuterostome_db
     Boolean use_deuterostome_filter = true
     Boolean use_taxon_whitelist = false
     Boolean alignment_scalability = false
@@ -382,8 +382,8 @@ workflow czid_non_host_alignment {
     Array[File] diamond_local_indices = []
     String? local_gsnap_genome_name
     File? local_rapsearch2_index
-    String minimap2_db = "s3://czid-public-references/minimap2-test/2021-01-22/nt_k14_w8_20/"
-    String diamond_db = "s3://czid-public-references/diamond-test/2021-01-22/"
+    String? minimap2_db
+    String? diamond_db
     String minimap2_args = "-cx sr --secondary=yes"
     String diamond_args = "--mid-sensitive"
     String minimap2_prefix = "gsnap"

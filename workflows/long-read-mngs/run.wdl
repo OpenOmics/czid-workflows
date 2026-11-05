@@ -825,7 +825,7 @@ task SummarizeHitsNT {
         File nt_top_m8
         File read_to_contig_tsv
         File deuterostome_db
-        File taxon_whitelist
+        File? taxon_whitelist
         File taxon_blacklist
         Boolean use_deuterostome_filter
         Boolean use_taxon_whitelist
@@ -845,7 +845,7 @@ task SummarizeHitsNT {
             "nt",
             "~{read_to_contig_tsv}",
             ~{if use_deuterostome_filter then '"~{deuterostome_db}"' else 'None'},
-            ~{if use_taxon_whitelist then '"~{taxon_whitelist}"' else 'None'},
+            ~{if use_taxon_whitelist then '"~{select_first([taxon_whitelist])}"' else 'None'},
             "~{taxon_blacklist}",
             "~{lineage_db}",
             "~{accession2taxid_db}",
@@ -872,7 +872,7 @@ task SummarizeHitsNR {
         File nr_top_m8
         File read_to_contig_tsv
         File deuterostome_db
-        File taxon_whitelist
+        File? taxon_whitelist
         File taxon_blacklist
         Boolean use_deuterostome_filter
         Boolean use_taxon_whitelist
@@ -892,7 +892,7 @@ task SummarizeHitsNR {
             "nr",
             "~{read_to_contig_tsv}",
             ~{if use_deuterostome_filter then '"~{deuterostome_db}"' else 'None'},
-            ~{if use_taxon_whitelist then '"~{taxon_whitelist}"' else 'None'},
+            ~{if use_taxon_whitelist then '"~{select_first([taxon_whitelist])}"' else 'None'},
             "~{taxon_blacklist}",
             "~{lineage_db}",
             "~{accession2taxid_db}",
@@ -1075,7 +1075,7 @@ task SummarizeContigsNT {
         File nt_hit_summary
         File lineage_db
         File deuterostome_db
-        File taxon_whitelist
+        File? taxon_whitelist
         File taxon_blacklist
         Boolean use_deuterostome_filter
         Boolean use_taxon_whitelist
@@ -1093,7 +1093,7 @@ task SummarizeContigsNT {
             "~{nt_hit_summary}",
             "~{lineage_db}",
             ~{if use_deuterostome_filter then '"~{deuterostome_db}"' else 'None'},
-            ~{if use_taxon_whitelist then '"~{taxon_whitelist}"' else 'None'},
+            ~{if use_taxon_whitelist then '"~{select_first([taxon_whitelist])}"' else 'None'},
             "~{taxon_blacklist}",
             "nt",
             "refined_gsnap_counts_with_dcr.json",
@@ -1120,7 +1120,7 @@ task SummarizeContigsNR {
         File nr_hit_summary
         File lineage_db
         File deuterostome_db
-        File taxon_whitelist
+        File? taxon_whitelist
         File taxon_blacklist
         Boolean use_deuterostome_filter
         Boolean use_taxon_whitelist
@@ -1138,7 +1138,7 @@ task SummarizeContigsNR {
             "~{nr_hit_summary}",
             "~{lineage_db}",
             ~{if use_deuterostome_filter then '"~{deuterostome_db}"' else 'None'},
-            ~{if use_taxon_whitelist then '"~{taxon_whitelist}"' else 'None'},
+            ~{if use_taxon_whitelist then '"~{select_first([taxon_whitelist])}"' else 'None'},
             "~{taxon_blacklist}",
             "nr",
             "refined_rapsearch2_counts_with_dcr.json",
@@ -1200,7 +1200,7 @@ task ComputeMergedTaxonCounts {
 
         File lineage_db
         File deuterostome_db
-        File taxon_whitelist
+        File? taxon_whitelist
         File taxon_blacklist
 
         Boolean use_deuterostome_filter
@@ -1222,7 +1222,7 @@ task ComputeMergedTaxonCounts {
             "~{nr_contig_summary_json}",
             "~{lineage_db}",
             ~{if use_deuterostome_filter then '"~{deuterostome_db}"' else 'None'},
-            ~{if use_taxon_whitelist then '"~{taxon_whitelist}"' else 'None'},
+            ~{if use_taxon_whitelist then '"~{select_first([taxon_whitelist])}"' else 'None'},
             "~{taxon_blacklist}",
             "merged.m8",
             "merged.hitsummary2.tab",
@@ -1356,6 +1356,57 @@ task GenerateCoverageViz {
     }
 }
 
+task GenerateLongReadReport {
+    input {
+        String docker_image_id
+        File refined_taxon_counts_json
+        File combined_contig_summary_json
+        File contig_stats_json
+        File contig_base_counts_json
+        File contigs_fasta
+        File report_script
+        File report_utils
+        File report_total_bases_count
+        File report_before_subsampling_count
+        File report_after_subsampling_count
+        File report_taxonomy_nodes_dmp
+        File report_taxonomy_names_dmp
+        File report_taxonomy_merged_dmp
+        File report_taxonomy_delnodes_dmp
+        String report_taxonomy_date
+    }
+    command <<<
+        set -euxo pipefail
+        mkdir -p reporting
+        cp '~{report_script}' reporting/long_read_report.py
+        cp '~{report_utils}' reporting/mngs_report_utils.py
+        python3 reporting/long_read_report.py \
+            '~{refined_taxon_counts_json}' long_read_report.csv \
+            --total-count '~{report_total_bases_count}' \
+            --before-subsampling '~{report_before_subsampling_count}' \
+            --after-subsampling '~{report_after_subsampling_count}' \
+            --contig-summary '~{combined_contig_summary_json}' \
+            --contig-stats '~{contig_stats_json}' \
+            --contig-base-counts '~{contig_base_counts_json}' \
+            --contigs-fasta '~{contigs_fasta}' \
+            --taxonomy-nodes '~{report_taxonomy_nodes_dmp}' \
+            --taxonomy-names '~{report_taxonomy_names_dmp}' \
+            --taxonomy-merged '~{report_taxonomy_merged_dmp}' \
+            --taxonomy-delnodes '~{report_taxonomy_delnodes_dmp}' \
+            --taxonomy-date '~{report_taxonomy_date}'
+    >>>
+    output {
+        File report_csv = "long_read_report.csv"
+        File taxonomy_resolution_csv = "long_read_report.csv.taxonomy.csv"
+        File taxonomy_metadata_json = "long_read_report.csv.taxonomy.json"
+    }
+    runtime {
+        docker: docker_image_id
+        cpu: 4
+        memory: "4 GiB"
+    }
+}
+
 workflow czid_long_read_mngs {
     input {
         String docker_image_id
@@ -1364,7 +1415,7 @@ workflow czid_long_read_mngs {
 
         File input_fastq
 
-        String library_type = "RNA"
+        String library_type
         String guppy_basecaller_setting = "hac" # fast, hac, super
 
         # The subsample_depth used to be 4000000 because to get 1 million reads we need to get 
@@ -1382,7 +1433,7 @@ workflow czid_long_read_mngs {
         File lineage_db
         File accession2taxid_db
         File taxon_blacklist
-        File taxon_whitelist = "s3://czid-public-references/taxonomy/2020-02-10/respiratory_taxon_whitelist.txt"
+        File? taxon_whitelist
         Int min_read_length = 36
         File deuterostome_db
         File nt_info_db
@@ -1399,6 +1450,14 @@ workflow czid_long_read_mngs {
 
         Boolean use_deuterostome_filter = true
         Boolean use_taxon_whitelist = false
+
+        File report_script
+        File report_utils
+        File report_taxonomy_nodes_dmp
+        File report_taxonomy_names_dmp
+        File report_taxonomy_merged_dmp
+        File report_taxonomy_delnodes_dmp
+        String report_taxonomy_date
     }
 
     call RunValidateInput {
@@ -1674,6 +1733,26 @@ workflow czid_long_read_mngs {
             docker_image_id = docker_image_id,
     }
 
+    call GenerateLongReadReport {
+        input:
+            docker_image_id = docker_image_id,
+            report_script = report_script,
+            report_utils = report_utils,
+            report_total_bases_count = RunValidateInput.raw_bases,
+            report_before_subsampling_count = RunHumanFilter.human_filtered_bases,
+            report_after_subsampling_count = RunSubsampling.subsampled_bases,
+            refined_taxon_counts_json = CombineTaxonCounts.refined_taxon_counts_with_dcr_json,
+            combined_contig_summary_json = CombineJson.combined_contig_summary_json,
+            contig_stats_json = GenerateContigStats.contig_stats_json,
+            contig_base_counts_json = GenerateContigStats.contig_base_counts,
+            contigs_fasta = RunAssembly.assembled_fasta,
+            report_taxonomy_nodes_dmp = report_taxonomy_nodes_dmp,
+            report_taxonomy_names_dmp = report_taxonomy_names_dmp,
+            report_taxonomy_merged_dmp = report_taxonomy_merged_dmp,
+            report_taxonomy_delnodes_dmp = report_taxonomy_delnodes_dmp,
+            report_taxonomy_date = report_taxonomy_date
+    }
+
     output {
         # RunValidateInput
         File raw_reads = RunValidateInput.raw_reads
@@ -1759,5 +1838,8 @@ workflow czid_long_read_mngs {
         File coverage_viz_out_coverage_viz_summary_json = GenerateCoverageViz.coverage_viz_summary_json
         File? coverage_viz_out_count = GenerateCoverageViz.output_read_count
         Array[File] coverage_viz = GenerateCoverageViz.coverage_viz
+        File long_read_report_csv = GenerateLongReadReport.report_csv
+        File long_read_taxonomy_resolution_csv = GenerateLongReadReport.taxonomy_resolution_csv
+        File long_read_taxonomy_metadata_json = GenerateLongReadReport.taxonomy_metadata_json
     }
 }

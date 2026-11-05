@@ -470,6 +470,57 @@ task GenerateTaxidLocator {
   }
 }
 
+task GenerateShortReadReport {
+  input {
+    String docker_image_id
+    File refined_taxon_counts_json
+    File combined_contig_summary_json
+    File contig_stats_json
+    File contigs_fasta
+    File report_script
+    File report_utils
+    File report_total_reads_count
+    File report_before_subsampling_count
+    File report_after_subsampling_count
+    File report_ercc_counts_tsv
+    File report_taxonomy_nodes_dmp
+    File report_taxonomy_names_dmp
+    File report_taxonomy_merged_dmp
+    File report_taxonomy_delnodes_dmp
+    String report_taxonomy_date
+  }
+  command<<<
+  set -euxo pipefail
+  mkdir -p reporting
+  cp '~{report_script}' reporting/short_read_report.py
+  cp '~{report_utils}' reporting/mngs_report_utils.py
+  python3 reporting/short_read_report.py \
+    '~{refined_taxon_counts_json}' short_read_report.csv \
+    --total-count '~{report_total_reads_count}' \
+    --before-subsampling '~{report_before_subsampling_count}' \
+    --after-subsampling '~{report_after_subsampling_count}' \
+    --ercc-counts '~{report_ercc_counts_tsv}' \
+    --contig-summary '~{combined_contig_summary_json}' \
+    --contig-stats '~{contig_stats_json}' \
+    --contigs-fasta '~{contigs_fasta}' \
+    --taxonomy-nodes '~{report_taxonomy_nodes_dmp}' \
+    --taxonomy-names '~{report_taxonomy_names_dmp}' \
+    --taxonomy-merged '~{report_taxonomy_merged_dmp}' \
+    --taxonomy-delnodes '~{report_taxonomy_delnodes_dmp}' \
+    --taxonomy-date '~{report_taxonomy_date}'
+  >>>
+  output {
+    File report_csv = "short_read_report.csv"
+    File taxonomy_resolution_csv = "short_read_report.csv.taxonomy.csv"
+    File taxonomy_metadata_json = "short_read_report.csv.taxonomy.json"
+  }
+  runtime {
+    docker: docker_image_id
+    cpu: 4
+    memory: "4 GiB"
+  }
+}
+
 workflow czid_postprocess {
   input {
     String docker_image_id
@@ -488,17 +539,28 @@ workflow czid_postprocess {
     File duplicate_cluster_sizes_tsv
     File czid_dedup_out_duplicate_clusters_csv
     String index_version = "2021-01-22" # FIXME: vestigial input
-    String nt_db = "s3://czid-public-references/ncbi-sources/2021-01-22/nt"
-    File nt_loc_db = "s3://czid-public-references/alignment_data/2021-01-22/nt_loc.db"
-    String nr_db = "s3://czid-public-references/ncbi-sources/2021-01-22/nr"
-    File nr_loc_db = "s3://czid-public-references/alignment_data/2021-01-22/nr_loc.db"
-    File lineage_db = "s3://czid-public-references/taxonomy/2021-01-22/taxid-lineages.db"
-    File accession2taxid_db = "s3://czid-public-references/ncbi-indexes-prod/2021-01-22/index-generation-2/accession2taxid.marisa"
-    File taxon_blacklist = "s3://czid-public-references/taxonomy/2021-01-22/taxon_blacklist.txt"
-    File deuterostome_db = "s3://czid-public-references/taxonomy/2021-01-22/deuterostome_taxids.txt"
+    String nt_db
+    File nt_loc_db
+    String nr_db
+    File nr_loc_db
+    File lineage_db
+    File accession2taxid_db
+    File taxon_blacklist
+    File deuterostome_db
     Boolean use_deuterostome_filter = true
     Boolean use_taxon_whitelist = false
     Int min_contig_length = 100
+    File report_script
+    File report_utils
+    File report_total_reads_count
+    File report_before_subsampling_count
+    File report_after_subsampling_count
+    File report_ercc_counts_tsv
+    File report_taxonomy_nodes_dmp
+    File report_taxonomy_names_dmp
+    File report_taxonomy_merged_dmp
+    File report_taxonomy_delnodes_dmp
+    String report_taxonomy_date
   }
 
   call RunAssembly {
@@ -680,6 +742,26 @@ workflow czid_postprocess {
       assembly_refined_taxid_annot_mapped_only_fasta = GenerateTaxidFasta.assembly_refined_taxid_annot_mapped_only_fasta
   }
 
+  call GenerateShortReadReport {
+    input:
+      docker_image_id = docker_image_id,
+      report_script = report_script,
+      report_utils = report_utils,
+      report_total_reads_count = report_total_reads_count,
+      report_before_subsampling_count = report_before_subsampling_count,
+      report_after_subsampling_count = report_after_subsampling_count,
+      report_ercc_counts_tsv = report_ercc_counts_tsv,
+      refined_taxon_counts_json = CombineTaxonCounts.assembly_refined_taxon_counts_with_dcr_json,
+      combined_contig_summary_json = CombineJson.assembly_combined_contig_summary_json,
+      contig_stats_json = RunAssembly.assembly_contig_stats_json,
+      contigs_fasta = RunAssembly.assembly_contigs_fasta,
+      report_taxonomy_nodes_dmp = report_taxonomy_nodes_dmp,
+      report_taxonomy_names_dmp = report_taxonomy_names_dmp,
+      report_taxonomy_merged_dmp = report_taxonomy_merged_dmp,
+      report_taxonomy_delnodes_dmp = report_taxonomy_delnodes_dmp,
+      report_taxonomy_date = report_taxonomy_date
+  }
+
   output {
     File assembly_out_assembly_contigs_fasta = RunAssembly.assembly_contigs_fasta
     File assembly_out_assembly_contigs_all_fasta = RunAssembly.assembly_contigs_all_fasta
@@ -733,5 +815,8 @@ workflow czid_postprocess {
     File refined_taxid_locator_out_assembly_refined_taxid_locations_family_nr_json = GenerateTaxidLocator.assembly_refined_taxid_locations_family_nr_json
     File refined_taxid_locator_out_assembly_refined_taxid_locations_combined_json = GenerateTaxidLocator.assembly_refined_taxid_locations_combined_json
     File? refined_taxid_locator_out_count = GenerateTaxidLocator.output_read_count
+    File short_read_report_csv = GenerateShortReadReport.report_csv
+    File short_read_taxonomy_resolution_csv = GenerateShortReadReport.taxonomy_resolution_csv
+    File short_read_taxonomy_metadata_json = GenerateShortReadReport.taxonomy_metadata_json
   }
 }
