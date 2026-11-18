@@ -27,7 +27,7 @@ HOST_REFERENCE_ROOT = "/data/openomics/references/czid-workflows/host_filter"
 HOST_REFERENCE_TEMPLATES = {
     "short_read": {
         "human": "human_telomere/2023-07-05/host-genome-generation-1/human_telomere.{suffix}",
-        "mosquito": "mosquito/20221031/{input_name}/mosquito.{suffix}",
+        "mosquito": "mosquitos/2019-10-02/mosquito_indexes/{input_name}/mosquito.{suffix}",
         "bat": "bat/20221031/{input_name}/bat.{suffix}",
         "macaca_fascicularis": "macaca_fascicularis/2023-06-08/host-genome-generation-1/macaca_fascicularis.{suffix}",
     },
