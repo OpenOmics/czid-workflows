@@ -6,12 +6,11 @@
 #
 # Usage:
 #   run-czid samplesheet.csv \
-#       --fastq-dir /path/to/fastqs \
 #       --output-dir /path/to/output \
+#       [--fastq-dir /path/to/fastqs] \
 #       [--serial]
 # ---------------------------------------------------------------------------------------------
 
-import sys
 import os
 import argparse
 import csv
@@ -37,7 +36,7 @@ HOST_REFERENCE_TEMPLATES = {
         "mosquito": "mosquitos/2019-10-02/mosquitos_minimap2_genome_{library_type}.mmi",
         "bat": "bat/2019-07-02/bat_minimap2_genome_{library_type}.mmi",
         "macaca_fascicularis": "macaca_fascicularis/2023-06-08/host-genome-generation-1/macaca_fascicularis_{library_type}.mmi",
-    },
+    }
 }
 
 SBATCH_HEADER = """#!/usr/bin/env bash
@@ -57,8 +56,35 @@ module load miniwdl
 
 
 def load_samplesheet(path):
+    required = ("sample_name", "seq_platform", "seq_input", "seq_fastq_R1")
     with open(path, newline="", encoding="utf-8-sig") as samplesheet:
-        yield from csv.DictReader(samplesheet)
+        reader = csv.DictReader(samplesheet)
+        missing = [column for column in required if column not in (reader.fieldnames or [])]
+        if missing:
+            raise ValueError(f"Missing required columns: {', '.join(missing)}")
+        rows = list(reader)
+
+    if not rows:
+        raise ValueError("Samplesheet contains no samples")
+    for row_number, row in enumerate(rows, start=2):
+        for column in required:
+            value = (row[column] or "").strip()
+            if not value:
+                raise ValueError(f"Row {row_number}: {column} is required")
+            row[column] = value
+        for column, allowed in (("seq_platform", ("ILLUMINA", "ONT")), ("seq_input", ("DNA", "RNA"))):
+            row[column] = row[column].upper()
+            if row[column] not in allowed:
+                raise ValueError(f"Row {row_number}: {column} must be one of: {', '.join(allowed)}")
+        host_genome = optional_value(row, "host_genome", DEFAULT_HOST_GENOME)
+        read_type = {"ILLUMINA": "short_read", "ONT": "long_read"}[row["seq_platform"]]
+        templates = HOST_REFERENCE_TEMPLATES[read_type]
+        if host_genome not in templates:
+            raise ValueError(
+                f"Sample {row['sample_name']}: unsupported host_genome '{host_genome}'. Expected one of: {', '.join(templates)}"
+            )
+        row["host_genome"] = host_genome
+    return rows
 
 
 def optional_value(row, column, default=None):
@@ -68,12 +94,8 @@ def optional_value(row, column, default=None):
     return default
 
 
-def build_host_reference_inputs(read_type, host_genome, nucleotide_type, sample_name):
+def build_host_reference_inputs(read_type, host_genome, nucleotide_type):
     templates = HOST_REFERENCE_TEMPLATES[read_type]
-    if host_genome not in templates:
-        raise ValueError(
-            f"Sample {sample_name}: unsupported host_genome '{host_genome}'. Expected one of: {', '.join(templates)}"
-        )
 
     if read_type == "short_read":
         references = {
@@ -96,21 +118,18 @@ def build_host_reference_inputs(read_type, host_genome, nucleotide_type, sample_
     return [f"{input_name}={os.path.join(HOST_REFERENCE_ROOT, path)}" for input_name, path in references.items()]
 
 
-def build_command(row, output_dir, fastq_dir):
+def build_command(row, output_dir):
     sample_name = row["sample_name"]
-    platform = row["seq_platform"].strip().upper()
-    nucleotide_type = row["seq_input"].strip().upper()
-    r1 = os.path.join(fastq_dir, row["seq_fastq_R1"])
-    r2_name = optional_value(row, "seq_fastq_R2")
-    r2 = os.path.join(fastq_dir, r2_name) if r2_name else None
-    host_genome = optional_value(row, "host_genome", DEFAULT_HOST_GENOME)
+    platform = row["seq_platform"]
+    nucleotide_type = row["seq_input"]
+    r1 = row["seq_fastq_R1"]
+    r2 = optional_value(row, "seq_fastq_R2")
+    host_genome = row["host_genome"]
 
     out_dir = os.path.join(output_dir, sample_name)
 
-    read_type = {"ILLUMINA": "short_read", "ONT": "long_read"}.get(platform)
-    if read_type is None:
-        return None, None
-    host_reference_inputs = build_host_reference_inputs(read_type, host_genome, nucleotide_type, sample_name)
+    read_type = {"ILLUMINA": "short_read", "ONT": "long_read"}[platform]
+    host_reference_inputs = build_host_reference_inputs(read_type, host_genome, nucleotide_type)
 
     if read_type == "short_read":
         workflow = os.path.join(SHORT_READ_WORKFLOW_DIR, "local_driver.wdl")
@@ -118,16 +137,16 @@ def build_command(row, output_dir, fastq_dir):
         if r2:
             inputs.append(f"fastqs_1={r2}")
         inputs += [
-            *host_reference_inputs,
             f"host_filter.nucleotide_type={nucleotide_type}",
             f"host_filter.host_genome={host_genome}",
+            *host_reference_inputs
         ]
     else:
         workflow = os.path.join(LONG_READ_WORKFLOW_DIR, "run.wdl")
         inputs = [
             f"input_fastq={r1}",
             f"library_type={nucleotide_type}",
-            *host_reference_inputs,
+            *host_reference_inputs
         ]
 
     workflow_name = f"{read_type.replace('_', '-')}-mngs"
@@ -145,12 +164,9 @@ def build_command(row, output_dir, fastq_dir):
     return job_name, cmd
 
 
-def submit_sample(row, output_dir, fastq_dir, serial, prev_job_id):
+def submit_sample(row, output_dir, serial, prev_job_id):
     sample_name = row["sample_name"]
-    job_name, cmd = build_command(row, output_dir, fastq_dir)
-    if cmd is None:
-        print(f"Skipping {sample_name}: unknown seq_platform '{row['seq_platform']}'", file=sys.stderr)
-        return prev_job_id
+    job_name, cmd = build_command(row, output_dir)
 
     out_dir = os.path.join(output_dir, sample_name)
     os.makedirs(out_dir, exist_ok=True)
@@ -175,14 +191,26 @@ def submit_sample(row, output_dir, fastq_dir, serial, prev_job_id):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("samplesheet")
-    parser.add_argument("--fastq-dir", required=True)
+    parser.add_argument("--fastq-dir", help="Optional directory for FASTQ paths if listing fastq filenames in the samplesheet and all in the same directory")
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--serial", action="store_true", help="Chain samples via Slurm job dependencies, one at a time (default: submit all in parallel)")
     args = parser.parse_args()
 
+    try:
+        rows = load_samplesheet(args.samplesheet)
+    except ValueError as error:
+        parser.error(str(error))
+    for row in rows:
+        for column in ("seq_fastq_R1", "seq_fastq_R2"):
+            path = optional_value(row, column, "")
+            if path and not os.path.isabs(path):
+                if not args.fastq_dir:
+                    parser.error(f"Sample {row['sample_name']}: {column} must be an absolute path or supplied with --fastq-dir")
+                row[column] = os.path.abspath(os.path.join(args.fastq_dir, path))
+
     prev_job_id = None
-    for row in load_samplesheet(args.samplesheet):
-        prev_job_id = submit_sample(row, args.output_dir, args.fastq_dir, args.serial, prev_job_id)
+    for row in rows:
+        prev_job_id = submit_sample(row, args.output_dir, args.serial, prev_job_id)
 
 
 if __name__ == "__main__":

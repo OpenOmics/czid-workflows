@@ -1,0 +1,5 @@
+sample_name,seq_input,seq_platform,seq_fastq_R1,seq_fastq_R2,host_genome
+sample_PE_1,DNA,Illumina,/path/to/fastqs/sample1_R1.fastq.gz,/path/to/fastqs/sample1_R2.fastq.gz,human
+sample_SE_2,DNA,Illumina,/path/to/fastqs/sample2_R1.fastq.gz,,human
+sample_3,DNA,ONT,/path/to/fastqs/sample3.fastq.gz,,human
+sample_4,RNA,ONT,/path/to/fastqs/sample4.fastq.gz,,mosquito
