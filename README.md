@@ -25,6 +25,102 @@ This repository contains [WDL](https://openwdl.org/) workflows that the [CZ ID](
 production. See [Running WDL workflows locally](https://github.com/chanzuckerberg/czid-workflows/wiki/Running-WDL-workflows-locally)
 to get started with them.
 
+### Running short and long-read-mngs on Skyline HPC
+
+Execution of the **short-read-mngs** (`Illumina`) and **long-read-mngs** (`ONT`) CZID workflows on Skyline HPC is orchestrated through [cluster/run-czid](cluster/run-czid) which invokes Slurm submissions for all samples defined in a samplesheet. 
+
+#### HPC Configuration
+* Uses miniwdl with Slurm and Singularity configuration:  [cluster/miniwdl.cfg](cluster/miniwdl.cfg)
+* Container images are available on this fork's GHCR as czid-short-read-mngs and czid-long-read-mngs: [images](https://github.com/orgs/OpenOmics/packages?repo_name=czid-workflows)
+
+---
+#### Prepare a samplesheet
+
+Prepare a CSV samplesheet with your input data that looks as follows. Both short and long-read-mngs can be run in the same samplesheet:
+
+[example_samplesheet.csv](cluster/example_samplesheet.csv):
+
+```csv
+sample_name,seq_input,seq_platform,seq_fastq_R1,seq_fastq_R2,host_genome
+sample_PE_1,DNA,Illumina,/path/to/fastqs/sample1_R1.fastq.gz,/path/to/fastqs/sample1_R2.fastq.gz,human
+sample_SE_2,DNA,Illumina,/path/to/fastqs/sample2_R1.fastq.gz,,human
+sample_3,DNA,ONT,/path/to/fastqs/sample3.fastq.gz,,human
+sample_4,RNA,ONT,/path/to/fastqs/sample4.fastq.gz,,mosquito
+```
+
+Required columns must contain a value for every sample. Optional columns may be omitted or left blank.
+
+| Column | Required? | Description |
+| --- | --- | --- |
+| `sample_name` | Yes | Unique sample name |
+| `seq_input` | Yes | `DNA` or `RNA` (case-insensitive) |
+| `seq_platform` | Yes | `Illumina` for short-read-mngs or `ONT` for long-read-mngs (case-insensitive) |
+| `seq_fastq_R1` | Yes | Absolute FASTQ file path, or a path relative to `--fastq-dir` |
+| `seq_fastq_R2` | For paired-end Illumina | R2 FASTQ file path, using the same path rules as R1. Leave blank for single-end reads or ONT |
+| `host_genome` | No | Defaults to `human` when blank or omitted. Other options being added are `mosquito`, `bat`, and `macaca_fascicularis` |
+
+
+Alternatively, if all fastq files are in a shared directory, `seq_fastq_R1` and `seq_fastq_R2` can use filenames relative to the shared FASTQ directory which is passed with `--fastq-dir`. See the 2nd example in next section:
+
+`samplesheet.csv`
+
+```csv
+sample_name,seq_input,seq_platform,seq_fastq_R1,seq_fastq_R2,host_genome
+sample_1,DNA,Illumina,sample1_R1.fastq.gz,sample1_R2.fastq.gz,human
+sample_2,RNA,ONT,sample2.fastq.gz,,mosquito
+```
+---
+#### Submit jobs
+
+[cluster/run-czid](cluster/run-czid) takes at least 2 inputs:
+1. CSV Samplesheet file
+2. Output directory passed with `--output-dir`
+
+For HPC use, enclose the execution command within a sbatch Slurm script.
+
+```bash
+/data/openomics/prod/czid-workflows/cluster/run-czid \
+    example_samplesheet.csv \
+    --output-dir /path/to/output/dir
+```
+
+If the samplesheet contains filenames relative to the shared FASTQ directory, supply `--fastq-dir /absolute/path/to/fastqs`:
+
+```bash
+/data/openomics/prod/czid-workflows/cluster/run-czid \
+    samplesheet.csv \
+    --fastq-dir /absolute/path/to/fastqs \
+    --output-dir /path/to/output/dir
+```
+
+Each sample's directory under `--output-dir` contains `submit.sbatch` with the miniwdl workflow invocation, Slurm `.out`/`.err` logs, and run directories with workflow results.
+
+---
+#### Main pipeline reference inputs
+
+- The orchestrator selects the workflow and host-filtering references.
+
+- Reference files are sourced from CZID's public S3 buckets. The ncbi-indexes-prod version is 2024-02-06.
+  - [short-read config YAML](cluster/skyline_short-read-mngs_config_2024-02-06.yml)
+  - [long-read config YAML](cluster/skyline_long-read-mngs_config_2024-02-06.yml)
+
+- **Data provenance for taxonomy annotation**
+  - Both workflows use the **2026-11-01** NCBI taxdump alongwith TaxonKit for annotating the results report with name, category, 7-rank lineage. This matches the taxids with the 2026-11-01 taxonomy database from: https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump_archive/.
+  - The reference sequence databases used for analysis are the 2024-02-06 reference files from CZID's buckets.
+
+#### Main pipeline outputs
+
+| Output | Short-read mNGS | Long-read mNGS |
+| --- | --- | --- |
+| Taxon report | `short_read_report.csv`: NT/NR counts, reads per million (RPM), alignment metrics, and contig metrics | `long_read_report.csv`: NT/NR counts, bases per million (BPM), alignment metrics, and contig metrics |
+
+For data provenance with 2026-11-01 taxonomy annotation, the workflows additionally output metadata containing taxid resolution differences if present.
+| Output | Purpose |
+| --- | --- |
+| `<report>.csv.taxonomy.csv` | Per-row audit of original and resolved taxids, resolution status, and rank/genus changes. |
+| `<report>.csv.taxonomy.json` | Annotation method, TaxonKit version, and reference taxonomy date |
+
+
 ### System Requirements 
 The system requirements differs for each workflow and depending on the database being used. For example running the short-read-mngs workflow with the full NT and NR databases would require an instance with >1TB of disk space and >100GB of memory. Running other workflows (e.g. consensus-genome, amr) requires much less space. 
 

@@ -6,6 +6,11 @@ The documentation presented here reflects the current CZ ID long-read-mngs pipel
 ​
 Further documentation on how to use the CZ ID long-read-mngs workflow can be found on the CZ ID help center -- including a [pipeline overview](https://chanzuckerberg.zendesk.com/hc/en-us/articles/13756558532884-CZ-ID-Pipeline-Overview) outlining the pipeline steps and details of the [initial validation](https://chanzuckerberg.zendesk.com/hc/en-us/articles/13895641006100-mNGS-Nanopore-Initial-Pipeline-Validation).
 ​
+### Running long-read-mngs on Skyline HPC
+
+For submission with `run-czid` and a CSV samplesheet, see [Running on Skyline HPC](../../README.md#running-short-and-long-read-mngs-on-skyline-hpc).
+
+
 ### Changelog
 
 **v0.7.8** -- May 21, 2024 -- Adjust Diamond sensitivity

@@ -15,6 +15,11 @@ The documentation presented here reflects the current CZ ID pipeline status and 
 4. Reporting and Visualization
 The pipeline relies on a variety of different software, whose versions are listed below. The most up-to-date version information can be found in the Dockerfile.
 
+### Running short-read-mngs on Skyline HPC
+
+For submission with `run-czid` and a CSV samplesheet, see [Running on Skyline HPC](../../README.md#running-short-and-long-read-mngs-on-skyline-hpc).
+
+
 ## Running Short-Read MNGS locally
 
 ### Short-Read MNGS viral pipeline dependencies 
