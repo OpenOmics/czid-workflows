@@ -339,7 +339,7 @@ task ercc_bowtie2_filter {
   runtime {
     docker: docker_image_id
     cpu: cpu
-    memory: "3G"
+    memory: "12G"
   }
 }
 
@@ -903,7 +903,7 @@ task collect_insert_size_metrics {
   runtime {
     docker: docker_image_id
     cpu: 1
-    memory: "8G"
+    memory: "12G"
   }
 }
 
